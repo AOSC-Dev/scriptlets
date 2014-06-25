@@ -41,8 +41,9 @@ die_hard() {
 
 # Wait a minute while I figure out how libplist-utils work.
 
-if [ "$1" == "" ]; then show_help; exit 1; fi
+if [ "$1" == "" ]; then show_help >&2; exit 1; fi
 if [ "$1" == "--version" ]; then show_version; exit 0; fi
+if [ "$1" == "--help]" ]; then show_help; exit 0; fi
 
 if [ -d $1/Contents/Resources ]
 then
