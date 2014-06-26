@@ -1,0 +1,4 @@
+scriptlets
+==========
+
+AOSC Scriptlets.
