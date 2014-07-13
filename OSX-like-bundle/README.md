@@ -45,7 +45,7 @@ MyApp.app/
       MyApp
       Frameworks/
         (Linux_x86_64 libs)
-    Windows/ (I'm kidding)
+    DotNET/ (I'm kidding)
       MyApp.exe
       App_Sup.dll
     Resources/
