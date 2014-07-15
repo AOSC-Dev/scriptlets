@@ -78,10 +78,12 @@ sort_and_select() {
 savesuccess() {
   for site in $TESTEDMIRRORS
   do
+    printf "deb $site/ os2-repo "
     for repo in $Sources 
     do
-      # Printf something
+       printf "$repo" # Currently 
     done
+    echo; echo
   done
 }
 
@@ -150,8 +152,8 @@ case "$ACTION" in
     Mirrors="`wget -nv -O - http://mirror.anthonos.org/mirrors.list`" || ((echo "Trying to use local mirror list" && Mirrors="`cat /etc/apt/mirrors.list`") || die_hard "AOSC apt-spy can\'t get a mirror list.")
     sort_and_select   
     echo -e  "# sources.list genereted by AOSC apt-spy.\n# See:\`$0 --help\` for more information." > /etc/apt/sources.list || die_hard "Cannot write to sources.list, please check permissions:\n`ls -alh /etc/apt`"
-    savesuccess
-    commentfail
+    savesuccess >> /etc/apt/sources.list
+    commentfail >> /etc/apt/sources.list
     ;;
   restore)
     mv ~/sources.list.bak /etc/apt/sources.list || die_hard "No backup files found. Make sure sources.list.bak is inside your \$HOME directory."
