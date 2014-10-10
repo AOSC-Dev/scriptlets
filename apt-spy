@@ -52,8 +52,8 @@ show_usage() {
 }
 
 testping() {
-  pingregex='= [^/]*/([0-9]+\.[0-9]+).*ms'
-  [[ $(ping -q -c 4 $1) =~ $pingregex ]] && printf ${BASH_REMATCH[1]} || printf "fail"  
+  pingregex='= [^/]*/([0-9]+\.[0-9]+).*ms' # Regular Expression, see Wikipedia. （正则表达式）
+  [[ $(ping -q -c 4 $1) =~ $pingregex ]] && printf ${BASH_REMATCH[1]} || printf "fail" # Wikipedia Bash: Regex.
 }
 
 testwget() {
