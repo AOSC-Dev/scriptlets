@@ -2,7 +2,7 @@
 # mkreleasetorrent.sh: Creates a torrent file for AOSC OS releases, along
 # with the web seeds.
 # uses mktorrent. https://github.com/esmil/mktorrent
-MIRROR_LIST='http://' # github.com/AOSC-Dev/.status/sites/, make it a tar.
+MIRROR_LIST='http://' # github.com/AOSC-Dev/Homepage/.status/sites/, make it a tarball.
 PUB_TRACKERS='udp://tracker.openbittorrent.com:80/announce \
 udp://tracker.publicbt.com:80/announce \
 udp://trk.obtracker.net:2710/announce' 
