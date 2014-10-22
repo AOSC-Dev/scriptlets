@@ -11,7 +11,7 @@ MIRROR='~/mirror'
 # first-time generate
 if [ -e ~/.torrentRel ]; then
   curl "$MIRROR_LIST" | tar -xzf &&
-  sites | while read site; do
+  find sites | while read site; do
   . "$site"
   echo "'$SITE' " >> ~/.torrentRel
   done
@@ -25,8 +25,8 @@ cd $MIRROR # make sure we have control over the name. Alternative solution: put 
   # webseed `root'.
 # cp -asr "$1" /tmp/torrel/"$target" # isolate
 # cd "$1/torrel"
-mktorrent "$target" -n "$target" -c "${comment=AOSC Release $name}" -o "$MIRROR/torrent" \
-$(trackers) $(webseeds)
+mktorrent "$target" -n "$target" -c "${comment=AOSC Release $name}" \
+-o"$MIRROR/torrent-releases/$(basename $target).torrent" $(trackers) $(webseeds) -l 22
 
 # For Multi-File torrents, this gets a bit more interesting. Normally, BitTorrent clients use the "name"
  # from the .torrent info section to make a folder, then use the "path/file" items from the info section
