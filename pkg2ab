@@ -2,6 +2,9 @@
 # This is written just for those xfce tasks... Political incorrect.
 # This script tries to convert Archlinux PKGBUILD things into autobuild defines. It simply does the copy and paste job.
 
+# Date format.
+LANG=C
+
 ##General Functions, move to abbs libs.
 # fundump funname filename
 fundump(){ declare -f "$1" | head -n+1 | tail -n+2 | sed -re 's/^(  (  |)|\t)//g' >> "$2"; }
