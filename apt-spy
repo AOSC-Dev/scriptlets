@@ -54,15 +54,15 @@ show_usage() {
 }
 
 testping() {
-	pingregex='= [^/]*/([0-9]+\.[0-9]+).*ms' # Regular Expression, see Wikipedia. （正则表达式）
-	[[ $(ping -q -c 4 $1) =~ $pingregex ]] && printf ${BASH_REMATCH[1]} || printf "fail" # Wikipedia Bash: Regex.
+	pingregex='= [^/]*/([0-9]+\.[0-9]+)' # Regular Expression, see Wikipedia. （正则表达式）
+	[[ $(ping -q -c 4 $1) =~ $pingregex ]] && printf "${BASH_REMATCH[1]:1}"|| printf "fail" # Wikipedia Bash: Regex.
 }
 
 testwget() {
 	# Needs to be reviewed.
 	# Using time may skip the 404 checking; but using sed seems to be complicated for me.
 	# Of course I am happy to make everything something like a string of number giving the time taken.
-	( time wget -nv -O /dev/null http://$1/path/to/test/file ) 2>&1 | grep real # | sed -e 's|^.*(\([0-9.]\+ [KM]B/s\)).*$|\1|' || printf "0"
+	( TIMEFORMAT='%3R' time wget -nv -O /dev/null http://$1/path/to/test/file ) 2>&1 | grep real # | sed -e 's|^.*(\([0-9.]\+ [KM]B/s\)).*$|\1|' || printf "0"
 }
 
 sort_and_select() {
