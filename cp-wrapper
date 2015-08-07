@@ -1,0 +1,51 @@
+#!/bin/bash
+# cp-wrapper: Determines if we are doing the cp job in the same fs.
+# If so, add '-l' to cp.
+
+declare -A mount_state
+# initialization: mtab
+IFS=' '
+while read fs mpoint type opts dump pass; do
+	mpoint="$(echo -e "${mpoint%/}-")"
+	mpoint="${mpoint%-}"
+	[[ fs == *fs ]] || fs="$(readlink -e "$fs")"
+	mount_state["$mpoint"]="${fs%/} $type $opts $dump $pass"
+done < /etc/mtab
+IFS=$' \t\n'
+
+# argument processing
+gopt="$(getopt -o abdfiHlLnPpRrsStTuvxZ \
+--long archive,attributes-only,backup:,copy-contents,force,interactive,link,dereference,no-clobber,no-dereference\
+preserve:,no-preserve:,parents,recursive,reflink:,remove-destination,sparse:,strip-trailing-slashes,\
+symbolic-link,suffix:,target-directory:,no-target-directory,update,verbose,one-file-system,context:,help,version \
+-n "$0" -- "$@")" || exit $?
+eval gopt="($gopt)"
+
+f=0
+for o in "${gopt[@]}"; do
+	[[ "$o" == -- ]] && break
+	((f++))
+done
+
+samefs=1
+curstate=''
+file=("${gopt[@]:f+1}")
+gopt=("${gopt[@]:0:f}")
+for o in "${file[@]}"; do
+	while [[ -n "${mount_state[$o]}" && "$o" ]]; do
+		o="${o%/*}"
+	done
+	if [[ -n "${mount_state[$o]}" ]]; then
+		samefs=0 # dontknow.
+		break
+	elif [[ -n "$curstate" ]]; then
+		curstate="${mount_state[$o]}"
+	elif [[ "${mount_state[$o]}" != "$curstate" ]]; then
+		samefs=0
+		break
+	fi
+done
+
+((samefs)) && gopt+=("-l")
+
+exec cp "${gopt[@]}" -- "${file[@]}"
