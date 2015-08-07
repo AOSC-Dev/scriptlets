@@ -18,7 +18,7 @@ IFS=$' \t\n'
 
 # argument processing
 gopt="$(getopt -o abdfiHlLnPpRrsStTuvxZ \
---long archive,attributes-only,backup:,copy-contents,force,interactive,link,dereference,no-clobber,no-dereference\
+--long archive,attributes-only,backup:,copy-contents,force,interactive,link,dereference,no-clobber,no-dereference,\
 preserve:,no-preserve:,parents,recursive,reflink:,remove-destination,sparse:,strip-trailing-slashes,\
 symbolic-link,suffix:,target-directory:,no-target-directory,update,verbose,one-file-system,context:,help,version \
 -n "$0" -- "$@")" || exit $?
