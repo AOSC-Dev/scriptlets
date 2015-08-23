@@ -25,6 +25,7 @@ declare -a MSGMERGE_FLAGS="${MSGMERGE_FLAGS:-(--backup=nil)}"
 
 # Extra sed commands for conversion.
 to_cn_sed=(
+  -r # ERE for grouping
   -e 's/函式/函数/g' # function
   -e 's/封存/归档/g' # archive
   -e 's/开启/打开/g' # open
@@ -38,6 +39,9 @@ to_cn_sed=(
   -e 's/唯读/只读/g' # readonly
   -e 's/胚腾/模式/g' # pattern, un-standardly translated to 胚腾 in TW sometimes.
   -e 's/逾時/超时/g' # timed out
+  -e 's/相依性/依赖关系/g' -e 's/相依/依赖/g' # dependency (pkgmgr)
+  -e 's/万用匹配/通配符/g' # glob
+  -e 's/([二八十]|十六)进位制?/\1进制/g' # bin, oct, dec, hex..
   # -e 's/「/ “/g' -e 's/」/” /g' -e 's/『/ ‘/g' -e 's/』/’ /g' # crude quoting
 )
 
