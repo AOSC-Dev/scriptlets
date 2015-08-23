@@ -2,7 +2,12 @@
 # zhconv-merge.sh: Merge zh variant translations with OpenCC and msgmerge.
 
 usage="Usage:	$0 OLD_FILE MERGE_ME_IN [POT_FILE=MERGE_ME_IN]
-	if OLD_FILE is missing, assume creation of new file."
+	if OLD_FILE is missing, assume creation of new file.
+
+Env vars:
+	ZH_MSGMERGE_OPTS	\`linear' array of extra flags for \`msgmerge'.
+	Example:		'(-E -C \"my compendia.po\" -w 79 --previous)'
+	Default:		'(--backup=nil)'"
 
 # This script comes with ABSOLUTELY NO WARRENTY, and can be used as if it is in
 # public domain, or (optionally) under the terms of CC0, WTFPL or Unlicense.
@@ -21,7 +26,7 @@ $usage"
 type opencc sed msgmerge >/dev/null || die "required command(s) not found"
 
 # Accept environment 'linear array' input.
-declare -a MSGMERGE_FLAGS="${MSGMERGE_FLAGS:-(--backup=nil)}"
+declare -a ZH_MSGMERGE_OPTS="${ZH_MSGMERGE_OPTS:-(--backup=nil)}"
 
 # OpenCC example cfgs used, all with Phrace Variants:
 #  s2twp: CN -> TW
@@ -72,7 +77,7 @@ zhvar(){
 		(*.zh_CN.po*)	echo "CN";;
 		(*.zh_TW.po*)	echo "TW";;
 		(*.zh_HK.po*)	echo "HK";;
-		(*)	echo "?" ;;
+		(*)	echo "??" ;;
 	esac
 }
 
@@ -92,7 +97,7 @@ new="$2" newtype="$(zhvar "$new")"
 pot="${3:-$2}"
 
 if [ ! -e "$old" ]; then
-	info "Creating $old. Manually edit the Language: header later."
+	info "Creating $old."
 	:> "$old"
 fi
 
@@ -111,19 +116,16 @@ esac
 opencc -c "$(occcfg "$newtype" "$oldtype")" -i "$new.$oldtype" -o "$new.$oldtype" ||
 	die "opencc returned $?."
 
-msgmerge -C "$new.$oldtype" "${MSGMERGE_FLAGS[@]}" -U "$old" "$pot" ||
+msgmerge -C "$new.$oldtype" --lang="zh_$oldtype" "${ZH_MSGMERGE_OPTS[@]}" -U "$old" "$pot" ||
 	die "msgmerge returned $?."
 
 case "$oldtype" in
 	(CN)	sed -i.pre_final "${to_cn_sed[@]}" "$old"
-			OUTFILES+=("SED	$oldtype	$old.pre_final")
+			OUTFILES+="SED	$oldtype	$old.pre_final"$'\n'
 esac
-
-IFS=$'\n'
 
 echo "
 OUT	$oldtype	$old
 TMP	$oldtype	$new.$oldtype
-${OUTFILES[*]}
-
+$OUTFILES
 Verify the results in a po editor, with some basic knowledge in zh_$oldtype."
