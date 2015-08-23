@@ -1,6 +1,8 @@
 #!/bin/bash
 # zhconv-merge.sh: Merge zh variant translations with OpenCC and msgmerge.
-# Usage: ./zhconv-merge.sh OLD_FILE MERGE_ME_IN [POT_FILE]
+
+usage="Usage:	$0 OLD_FILE MERGE_ME_IN [POT_FILE=MERGE_ME_IN]
+	if OLD_FILE is missing, assume creation of new file."
 
 # This script comes with ABSOLUTELY NO WARRENTY, and can be used as if it is in
 # public domain, or (optionally) under the terms of CC0, WTFPL or Unlicense.
@@ -10,8 +12,12 @@
 # Also, don't pass non-UTF8 files in.
 
 die(){ echo "Fatal:	$1">&2; exit "${2-1}"; }
+info(){ echo "Info:	$*">&2; }
 
-[ "$2" -a -e "$1" -a -e "$2" ] || die "Arguments invalid"
+[ "$2" -a -e "$2" ] || die "Arguments invalid
+
+$usage"
+
 type opencc sed msgmerge >/dev/null || die "required command(s) not found"
 
 # Accept environment 'linear array' input.
@@ -40,8 +46,15 @@ to_cn_sed=(
   -e 's/胚腾/模式/g' # pattern, un-standardly translated to 胚腾 in TW sometimes.
   -e 's/逾時/超时/g' # timed out
   -e 's/相依性/依赖关系/g' -e 's/相依/依赖/g' # dependency (pkgmgr)
-  -e 's/万用匹配/通配符/g' # glob
+  -e 's/万用匹配/通配符/g' -e 's/万用字符/通配符/g' # glob
   -e 's/([二八十]|十六)进位制?/\1进制/g' # bin, oct, dec, hex..
+  # -e 's/修补/补丁/g' # patch
+  # -e 's/套件/软件包/g' # package
+  -e 's/不容许/不允许/g' # not permitted
+  -e 's/暂存盘/临时文件/g' # tmpfile, word_struct (暂存 盘)
+  # -e 's/缩减/归约/g' # reduce (parser)
+  -e 's/算子/算符/g' # operator (parser)
+  -e 's/全域/全局/g' # global
   # -e 's/「/ “/g' -e 's/」/” /g' -e 's/『/ ‘/g' -e 's/』/’ /g' # crude quoting
 )
 
@@ -50,6 +63,7 @@ from_cn_sed=(
   -e 's/归档/封存/g' # archive
   -e 's/宏/巨集/g' # macro
   -e 's/只读/唯读/g' # readonly
+  -e 's/全局/全域/g' # global
 )
 
 zhvar(){
@@ -75,6 +89,11 @@ occcfg(){
 old="$1" oldtype="$(zhvar "$old")"
 new="$2" newtype="$(zhvar "$new")"
 pot="${3:-$2}"
+
+if [ ! -e "$old" ]; then
+	info "Creating $old. Manually edit the Language: header later."
+	:> "$old"
+fi
 
 echo "
 OLD	$oldtype	$old
