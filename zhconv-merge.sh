@@ -48,14 +48,15 @@ to_cn_sed=(
   -e 's/相依性/依赖关系/g' -e 's/相依/依赖/g' # dependency (pkgmgr)
   -e 's/万用匹配/通配符/g' -e 's/万用字符/通配符/g' # glob
   -e 's/([二八十]|十六)进位制?/\1进制/g' # bin, oct, dec, hex..
-  # -e 's/修补/补丁/g' # patch
-  # -e 's/套件/软件包/g' # package
+# -e 's/修补/补丁/g' # patch
+# -e 's/套件/软件包/g' # package
   -e 's/不容许/不允许/g' # not permitted
   -e 's/暂存盘/临时文件/g' # tmpfile, word_struct (暂存 盘)
-  # -e 's/缩减/归约/g' # reduce (parser)
+# -e 's/缩减/归约/g' # reduce (parser)
   -e 's/算子/算符/g' # operator (parser)
   -e 's/全域/全局/g' # global
-  # -e 's/「/ “/g' -e 's/」/” /g' -e 's/『/ ‘/g' -e 's/』/’ /g' # crude quoting
+  -e 's/做为/作为/g' # foo as(作为) bar
+# -e 's/「/ “/g' -e 's/」/” /g' -e 's/『/ ‘/g' -e 's/』/’ /g' # crude quoting
 )
 
 from_cn_sed=(
