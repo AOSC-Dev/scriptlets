@@ -29,12 +29,23 @@ to_cn_sed=(
   -e 's/封存/归档/g' # archive
   -e 's/开启/打开/g' # open
   -e 's/命令稿/脚本/g' # script
+  -e 's/盘案/文件/g' # file (save)
+  -e 's/回传/返回/g' # return (function)
+  -e 's/引数/参数/g' # argument (function)
+  -e 's/签章/签名/g' # signature (PGP)
+  -e 's/巨集/宏/g' # macro
+  -e 's/魔术字符/幻数/g' # magic number
+  -e 's/唯读/只读/g' # readonly
+  -e 's/胚腾/模式/g' # pattern, un-standardly translated to 胚腾 in TW sometimes.
+  -e 's/逾時/超时/g' # timed out
   # -e 's/「/ “/g' -e 's/」/” /g' -e 's/『/ ‘/g' -e 's/』/’ /g' # crude quoting
 )
 
 from_cn_sed=(
   -e 's/函数/函式/g' # function
   -e 's/归档/封存/g' # archive
+  -e 's/宏/巨集/g' # macro
+  -e 's/只读/唯读/g' # readonly
 )
 
 zhvar(){
@@ -81,11 +92,14 @@ msgmerge -C "$new.$oldtype" "${MSGMERGE_FLAGS[@]}" -U "$old" "$pot" ||
 
 case "$oldtype" in
 	(CN)	sed -i.pre_final "${to_cn_sed[@]}" "$old"
+			OUTFILES+=("SED	$oldtype	$old.pre_final")
 esac
+
+IFS=$'\n'
 
 echo "
 OUT	$oldtype	$old
 TMP	$oldtype	$new.$oldtype
-SED	$oldtype	$old.pre_final
+${OUTFILES[*]}
 
 Verify the results in a po editor, with some basic knowledge in zh_$oldtype."
