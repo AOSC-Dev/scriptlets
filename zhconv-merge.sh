@@ -28,6 +28,7 @@ to_cn_sed=(
   -e 's/函式/函数/g' # function
   -e 's/封存/归档/g' # archive
   -e 's/开启/打开/g' # open
+  -e 's/命令稿/脚本/g' # script
   # -e 's/「/ “/g' -e 's/」/” /g' -e 's/『/ ‘/g' -e 's/』/’ /g' # crude quoting
 )
 
