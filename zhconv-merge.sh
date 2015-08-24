@@ -7,7 +7,14 @@ usage="Usage:	$0 OLD_FILE MERGE_ME_IN [POT_FILE=MERGE_ME_IN]
 Env vars:
 	ZH_MSGMERGE_OPTS	\`linear' array of extra flags for \`msgmerge'.
 	Example:		'(-E -C \"my compendia.po\" -w 79 --previous)'
-	Default:		'(--backup=nil)'"
+	Default:		'(--backup=nil)'
+
+	ZH_POST_OCC:function	What to do after invoking OpenCC. To use,
+				define a function with this name in bash,
+				and export it with \`export -f ZH_POST_OCC'.
+	Example:		ZH_POST_OCC() { msgattrib --set-fuzzy \\
+				-i \"\$new.\$oldtype\" -o \"\$new.\$oldtype\"; }
+"
 
 # This script comes with ABSOLUTELY NO WARRENTY, and can be used as if it is in
 # public domain, or (optionally) under the terms of CC0, WTFPL or Unlicense.
@@ -15,7 +22,7 @@ Env vars:
 # Please make sure that there is no Chinese characters in msgid; or bad things
 # will happen when opencc converts them by mistake.
 # Also, don't pass non-UTF8 files in.
-
+readonly {FALSE,NO,false,no}=0 {TRUE,YES,true,yes}=1 # boolean shorthands
 die(){ echo "Fatal:	$1">&2; exit "${2-1}"; }
 info(){ echo "Info:	$*">&2; }
 
@@ -27,6 +34,8 @@ type opencc sed msgmerge >/dev/null || die "required command(s) not found"
 
 # Accept environment 'linear array' input.
 declare -a ZH_MSGMERGE_OPTS="${ZH_MSGMERGE_OPTS:-(--backup=nil)}"
+
+type ZH_POST_OCC &>/dev/null || ZH_POST_OCC(){ :; }
 
 # OpenCC example cfgs used, all with Phrace Variants:
 #  s2twp: CN -> TW
@@ -112,9 +121,10 @@ case "$newtype" in
 	(*) 	cp "$new" "$new.$oldtype"
 esac
 
-
 opencc -c "$(occcfg "$newtype" "$oldtype")" -i "$new.$oldtype" -o "$new.$oldtype" ||
 	die "opencc returned $?."
+
+ZH_POST_OCC
 
 msgmerge -C "$new.$oldtype" --lang="zh_$oldtype" "${ZH_MSGMERGE_OPTS[@]}" -U "$old" "$pot" ||
 	die "msgmerge returned $?."
