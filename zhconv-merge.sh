@@ -13,7 +13,7 @@ Env vars:
 				define a function with this name in bash,
 				and export it with \`export -f ZH_POST_OCC'.
 	Example:		ZH_POST_OCC() { msgattrib --set-fuzzy \\
-				-i \"\$new.\$oldtype\" -o \"\$new.\$oldtype\"; }
+				--no-fuzzy -o \"\$new.\$oldtype\"{,}; }
 "
 
 # This script comes with ABSOLUTELY NO WARRENTY, and can be used as if it is in
