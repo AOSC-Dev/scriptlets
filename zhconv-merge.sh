@@ -20,7 +20,8 @@ Env vars:
 # public domain, or (optionally) under the terms of CC0, WTFPL or Unlicense.
 
 # Please make sure that there is no Chinese characters in msgid; or bad things
-# will happen when opencc converts them by mistake.
+# will happen when opencc converts them by mistake. msgfilter can be used, but
+# it's super slow with it being called super many times. Same for sed.
 # Also, don't pass non-UTF8 files in.
 readonly {FALSE,NO,false,no}=0 {TRUE,YES,true,yes}=1 # boolean shorthands
 die(){ echo "Fatal:	$1">&2; exit "${2-1}"; }
@@ -45,40 +46,43 @@ type ZH_POST_OCC &>/dev/null || ZH_POST_OCC(){ :; }
 
 # Extra sed commands for conversion.
 to_cn_sed=(
-  -r # ERE for grouping
-  -e 's/函式/函数/g' # function
-  -e 's/封存/归档/g' # archive
-  -e 's/开启/打开/g' # open
-  -e 's/命令稿/脚本/g' # script
-  -e 's/盘案/文件/g' # file (save)
-  -e 's/回传/返回/g' # return (function)
-  -e 's/引数/参数/g' # argument (function)
-  -e 's/签章/签名/g' # signature (PGP)
-  -e 's/巨集/宏/g' # macro
-  -e 's/魔术字符/幻数/g' # magic number
-  -e 's/唯读/只读/g' # readonly
-  -e 's/胚腾/模式/g' # pattern, un-standardly translated to 胚腾 in TW sometimes.
-  -e 's/逾時/超时/g' # timed out
-  -e 's/相依性/依赖关系/g' -e 's/相依/依赖/g' # dependency (pkgmgr)
-  -e 's/万用匹配/通配符/g' -e 's/万用字符/通配符/g' # glob
-  -e 's/([二八十]|十六)进位制?/\1进制/g' # bin, oct, dec, hex..
-# -e 's/修补/补丁/g' # patch
-# -e 's/套件/软件包/g' # package
-  -e 's/不容许/不允许/g' # not permitted
-  -e 's/暂存盘/临时文件/g' # tmpfile, word_struct (暂存 盘)
-# -e 's/缩减/归约/g' # reduce (parser)
-  -e 's/算子/算符/g' # operator (parser)
-  -e 's/全域/全局/g' # global
-  -e 's/做为/作为/g' # foo as(作为) bar
-# -e 's/「/ “/g' -e 's/」/” /g' -e 's/『/ ‘/g' -e 's/』/’ /g' # crude quoting
+	-r # ERE for grouping
+	-e 's/函式/函数/g' # function
+	-e 's/封存/归档/g' # archive
+	-e 's/开启/打开/g' # open
+	-e 's/命令稿/脚本/g' # script
+	-e 's/盘案/文件/g' # file (save)
+	-e 's/回传/返回/g' # return (function)
+	-e 's/引数/参数/g' # argument (function)
+	-e 's/签章/签名/g' # signature (PGP)
+	-e 's/巨集/宏/g' # macro
+	-e 's/魔术字符/幻数/g' # magic number
+	-e 's/唯读/只读/g' # readonly
+	-e 's/胚腾/模式/g' # pattern, un-standardly translated to 胚腾 in TW sometimes.
+	-e 's/逾時/超时/g' # timed out
+	-e 's/相依性/依赖关系/g' -e 's/相依/依赖/g' # dependency (pkgmgr)
+	-e 's/万用匹配/通配符/g' -e 's/万用字符/通配符/g' # glob
+	-e 's/([二八十]|十六)进位制?/\1进制/g' # bin, oct, dec, hex..
+#	-e 's/修补/补丁/g' # patch
+#	-e 's/套件/软件包/g' # package
+#	-e 's/异动/事务/'g # transaction
+	-e 's/不容许/不允许/g' # not permitted
+	-e 's/暂存盘/临时文件/g' # tmpfile, word_struct (暂存 盘)
+#	-e 's/缩减/归约/g' # reduce (parser)
+	-e 's/算子/算符/g' # operator (parser)
+	-e 's/全域/全局/g' # global
+	-e 's/做为/作为/g' # foo as(作为) bar
+	-e 's/行程/进程/g' # process
+#	-e 's/行/__CoLM_列__/g' -e 's/列/行/g' -e 's/__CoLM_列__/列/g' # different ideas on lines and cols
+# 	-e 's/「/ “/g' -e 's/」/” /g' -e 's/『/ ‘/g' -e 's/』/’ /g' # crude quoting
 )
 
 from_cn_sed=(
-  -e 's/函数/函式/g' # function
-  -e 's/归档/封存/g' # archive
-  -e 's/宏/巨集/g' # macro
-  -e 's/只读/唯读/g' # readonly
-  -e 's/全局/全域/g' # global
+	-e 's/函数/函式/g' # function
+	-e 's/归档/封存/g' # archive
+	-e 's/宏/巨集/g' # macro
+	-e 's/只读/唯读/g' # readonly
+	-e 's/全局/全域/g' # global
 )
 
 zhvar(){
