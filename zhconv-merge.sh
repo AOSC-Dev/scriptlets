@@ -73,8 +73,9 @@ to_cn_sed=(
 	-e 's/全域/全局/g' # global
 	-e 's/做为/作为/g' # foo as(作为) bar
 	-e 's/行程/进程/g' # process
+	-e 's/润算/渲染/g' # render
 #	-e 's/行/__CoLM_列__/g' -e 's/列/行/g' -e 's/__CoLM_列__/列/g' # different ideas on lines and cols
-# 	-e 's/「/ “/g' -e 's/」/” /g' -e 's/『/ ‘/g' -e 's/』/’ /g' # crude quoting
+ 	-e 's/「/“/g' -e 's/」/”/g' -e 's/『/‘/g' -e 's/』/’/g' # crude quoting
 )
 
 from_cn_sed=(
@@ -94,15 +95,32 @@ zhvar(){
 	esac
 }
 
-occcfg(){
+occ_conv(){
+	local occcfg
 	case "$1,$2" in
-		(CN,TW)	echo s2twp;;
-		(TW,CN)	echo tw2sp;;
-		(CN,HK)	echo s2hk;;
-		(HK,CN)	echo hk2s;;
-		(*)		die "Specified pair $oldtype，$newtype not supported."$'\n\t'\
-				"Consider implementing chain conversion yourself."
+		(CN,TW)	occcfg=s2twp;;
+		(TW,CN)	occcfg=tw2sp;;
+		(CN,HK)	occcfg=s2hk;;
+		(HK,CN)	occcfg=hk2s;;
+		(TW,HK) occcfg=tw2sp,s2hk;;
+		(HK,TW) occcfg=hk2s,s2twp;;
+		(CN,CN|HK,HK|TW,TW)
+				occcfg=NULL;;
 	esac
+	if [ -z "$occcfg" ]; then
+		die "Specified pair $1，$2 not supported. Add it yourself."
+	fi
+	do_occ "$occcfg" "$3" "$4"
+}
+
+do_occ(){
+	local curr IFS=,
+	cp "$2" "${3:-$2}.work" || return
+	for curr in $1; do
+		[ "$curr" != NULL ] || continue
+		opencc -c "$curr" -i "${3:-$2}.work" -o "${3:-$2}.work" || return
+	done
+	mv "${3:-$2}"{.work,}
 }
 
 old="$1" oldtype="$(zhvar "$old")"
@@ -125,7 +143,7 @@ case "$newtype" in
 	(*) 	cp "$new" "$new.$oldtype"
 esac
 
-opencc -c "$(occcfg "$newtype" "$oldtype")" -i "$new.$oldtype" -o "$new.$oldtype" ||
+occ_conv "$newtype" "$oldtype" "$new"{,".$oldtype"} ||
 	die "opencc returned $?."
 
 ZH_POST_OCC
