@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 die(){ echo "$1"; exit "${2-1}"; }
 ## CC0
 usage(){
@@ -26,10 +26,8 @@ outpre="${2:-$1}"; outpre="${outpre%.po*}"
 IFS='' i=0
 while read -r -u 4 line; do case "$line" in
 	('')	echo "
-#: !DUMMY$i" >> "$outpre.1.po"; echo "
-#: !DUMMY$((100000-i))"  >> "$outpre.2.po"; ((i++));;
-	(*)	echo "$line" >> "$outpre.1.po"; echo "$line" >> "$outpre.2.po";;
+#: !DUMMY:$((100000-i))"  >> "$outpre.rev.po"; i=$((i+1));;
+	(*) echo "$line" >> "$outpre.rev.po";;
 esac; done
 
-msgcat -o "$outpre.1.po"{,}
-msgcat -o "$outpre.2.po"{,}
+msgcat -o "$outpre.rev.po" "$outpre.rev.po"
