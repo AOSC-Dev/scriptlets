@@ -2,7 +2,7 @@
 die(){ echo "$1"; exit "${2-1}"; }
 ## CC0
 usage(){
-	echo "Usage:	msgpair.sh POFILE [OUTPREFIX]
+	echo "Usage:	$0 POFILE [OUTPREFIX]
 Creates a pair of po files with the same messages in reverse order. \`-' as
 stdin is accepted as a special case.
 
