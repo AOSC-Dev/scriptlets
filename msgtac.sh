@@ -23,11 +23,23 @@ fi || usage
 
 outpre="${2:-$1}"; outpre="${outpre%.po*}"
 
-IFS='' i=0
+IFS='' i=0 BUF=''
+if ( _variable+=syntax_test ) >/dev/null 2>&1 &&
+       { [ -z "$MSGTAC_NO_PLUSEQ" ] || [ "$MSGTAC_NO_PLUSEQ" == "0" ]; }; then
 while read -r line; do case "$line" in
-	('')	echo "
-#: !DUMMY:$((100000-i))"  >> "$outpre.rev.po"; i=$((i+1));;
-	(*) echo "$line" >> "$outpre.rev.po";;
+	('')	BUF+="
+#: !DUMMY:$((100000-i))" i=$((i+1));;
+	(*) BUF+="
+$line";;
 esac; done <&4
+else
+while read -r line; do case "$line" in
+	('')	BUF="$BUF
+#: !DUMMY:$((100000-i))
+" i=$((i+1));;
+	(*) BUF="$BUF
+$line";;
+esac; done <&4
+fi
 
-msgcat -o "$outpre.rev.po" "$outpre.rev.po"
+printf '%s\n' "$BUF" | msgcat -o "$outpre.rev.po" -
