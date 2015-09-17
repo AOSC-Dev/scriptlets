@@ -15,7 +15,7 @@ with \`!' and with messages < 100000."
 }
 
 # So bash gives us why there will be a problem automatically!
-if [ "$1" && "$1" != '-' ]; then
+if [ "$1" ] && [ "$1" != '-' ]; then
 	exec 4<"$1"
 else
 	exec 4<&0 && [ "$2" ]
