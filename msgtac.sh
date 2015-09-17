@@ -42,4 +42,4 @@ $line";;
 esac; done <&4
 fi
 
-printf '%s\n' "$BUF" | msgcat -o "$outpre.rev.po" -
+printf '%s\n' "$BUF" | msgcat -F -o "$outpre.rev.po" -
