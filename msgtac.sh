@@ -35,8 +35,7 @@ esac; done <&4
 else
 while read -r line; do case "$line" in
 	('')	BUF="$BUF
-#: !DUMMY:$((100000-i))
-" i=$((i+1));;
+#: !DUMMY:$((100000-i))" i=$((i+1));;
 	(*) BUF="$BUF
 $line";;
 esac; done <&4
