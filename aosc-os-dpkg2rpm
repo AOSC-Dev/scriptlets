@@ -1,0 +1,52 @@
+#!/bin/sh -e
+# Super crude and simple for now, just to show the basic ideas of
+# how I actually built RPM builds of AOSC OS - and from what I can
+# see so far, this method works just fine.
+##@author 2015 Mingcong Bai (JeffBai) <jeffbaichina97@gmail.com>.
+##@author 2015 Mingye Wang (Arthur2e5) <arthur2e5@member.fsf.org>.
+##@author 2013 Mikko Rantalainen <mikko.rantalainen@peda.net>. (error handler)
+##@copyright MIT-1.0
+
+##Error handler by Mikko Rantalainen.
+on_error() {
+  local parent_lineno="$1"
+  local message="$3"
+  local code="$2"
+  if [[ -n "$message" ]] ; then
+    echo "Error on or near line ${parent_lineno}: ${message}; Code ${code}"
+  else
+    echo "Error on or near line ${parent_lineno}; Code ${code}"
+  fi >&2
+  echo "This error is triggered by \`sh -e' in the script; to override it, run `sh "$0"` instead."
+  exit $code
+}
+trap 'on_error ${LINENO} $?' ERR
+
+REPO=https://repo.anthonos.org
+# Get needed tools for RPM conversion
+apt update
+apt install zypper --yes
+
+# Remove PackageKit as it is not supported on RPM for now
+apt purge packagekit gnome-packagekit apper muon-explorer --yes
+
+# Get the list of DPKG packages with "Installed" state, specifically:
+# Includes Zypper at this point, of course...
+dpkg -l | grep ^ii | cut -d' ' -f 2 > /run/aosc-dpkg-list
+
+# Configure Zypper repositories
+zypper ar "$REPO/os3-next/os3-rpm" "AOSC OS3"
+
+# Install RPM packages
+zypper refresh
+zypper install $(cat /run/aosc-dpkg-list)
+
+# Now purge DPKG and Apt from the system
+apt purge apt dpkg --force-yes # Does this skip "Yes, do as I say!"?
+
+# And clean up...
+rm -rf /var/cache/apt
+rm -rf /var/lib/{dpkg,apt,PackageKit}
+
+# Boom, and done
+echo "Conversion complete!"
