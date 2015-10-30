@@ -74,6 +74,9 @@ to_cn_sed=(
 	-e 's/做为/作为/g' # foo as(作为) bar
 	-e 's/行程/进程/g' # process
 	-e 's/润算/渲染/g' # render
+	-e 's/堆栈/堆叠/g' # stack
+	-e 's/指标/指针/g' # pointer
+	-e 's/印出/打印/g' # print
 #	-e 's/行/__CoLM_列__/g' -e 's/列/行/g' -e 's/__CoLM_列__/列/g' # different ideas on lines and cols
  	-e 's/「/“/g' -e 's/」/”/g' -e 's/『/‘/g' -e 's/』/’/g' # crude quoting
 )
