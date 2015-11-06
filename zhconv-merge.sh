@@ -91,9 +91,9 @@ from_cn_sed=(
 
 zhvar(){
 	case "$1" in
-		(*.zh_CN.po*)	echo "CN";;
-		(*.zh_TW.po*)	echo "TW";;
-		(*.zh_HK.po*)	echo "HK";;
+		(*zh_CN*)	echo "CN";;
+		(*zh_TW*)	echo "TW";;
+		(*zh_HK*)	echo "HK";;
 		(*)	echo "??" ;;
 	esac
 }
