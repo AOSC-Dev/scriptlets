@@ -43,7 +43,9 @@ type ZH_POST_OCC &>/dev/null || ZH_POST_OCC(){ :; }
 #  tw2sp: TW -> CN
 #  s2hk:  CN -> HK
 #  hk2s:  HK -> CN
-
+declare -A cn_t_word
+cn_t_word[ 函式 ]=函数
+cn_t_word[ 封存 ]=归档
 # Extra sed commands for conversion.
 to_cn_sed=(
 	-r # ERE for grouping
