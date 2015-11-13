@@ -153,7 +153,8 @@ occ_conv "$newtype" "$oldtype" "$new"{,".$oldtype"} ||
 
 ZH_POST_OCC
 
-msgmerge -C "$new.$oldtype" --lang="zh_$oldtype" "${ZH_MSGMERGE_OPTS[@]}" -U "$old" "$pot" ||
+msgcat -o "$old" --use-first "$old" "$new.$oldtype"
+msgmerge --lang="zh_$oldtype" "${ZH_MSGMERGE_OPTS[@]}" -U "$old" "$pot" ||
 	die "msgmerge returned $?."
 
 case "$oldtype" in
