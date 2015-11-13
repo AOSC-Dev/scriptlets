@@ -153,8 +153,8 @@ occ_conv "$newtype" "$oldtype" "$new"{,".$oldtype"} ||
 
 ZH_POST_OCC
 
-msgcat -o "$old" --use-first "$old" "$new.$oldtype"
-msgmerge --lang="zh_$oldtype" "${ZH_MSGMERGE_OPTS[@]}" -U "$old" "$pot" ||
+msgcat -o "$old.all" --use-first "$old" "$new.$oldtype"
+msgmerge --lang="zh_$oldtype" "${ZH_MSGMERGE_OPTS[@]}" -o "$old"{,.all} "$pot" ||
 	die "msgmerge returned $?."
 
 case "$oldtype" in
@@ -164,6 +164,7 @@ esac
 
 echo "
 OUT	$oldtype	$old
+ALL	$oldtype	$old.all
 TMP	$oldtype	$new.$oldtype
 $OUTFILES
 Verify the results in a po editor, with some basic knowledge in zh_$oldtype."
