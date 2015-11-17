@@ -93,9 +93,9 @@ from_cn_sed=(
 
 zhvar(){
 	case "$1" in
-		(*zh[_-]CN*|*zh[_-]Hans)
+		(*zh[_-]CN*|*zh[_-]Hans*)
 			echo "CN";;
-		(*zh[_-]TW*|*zh[_-]Hant)
+		(*zh[_-]TW*|*zh[_-]Hant*)
 			echo "TW";;
 		(*zh[_-]HK*)	echo "HK";;
 		(*)	echo "??" ;;
