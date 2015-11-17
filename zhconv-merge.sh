@@ -7,7 +7,7 @@ usage="Usage:	$0 OLD_FILE MERGE_ME_IN [POT_FILE=MERGE_ME_IN]
 Env vars:
 	ZH_MSGMERGE_OPTS	\`linear' array of extra flags for \`msgmerge'.
 	Example:		'-E -C \"my compendia.po\" -w 79 --previous'
-	Default:		'--backup=nil --previous'
+	Default:		'--previous'
 
 	ZH_POST_OCC:function	What to do after invoking OpenCC. To use,
 				define a function with this name in bash,
@@ -34,7 +34,7 @@ $usage"
 type opencc sed msgmerge >/dev/null || die "required command(s) not found"
 
 # Accept environment 'linear array' input.
-declare -a ZH_MSGMERGE_OPTS="(${ZH_MSGMERGE_OPTS:---backup=nil --previous})"
+declare -a ZH_MSGMERGE_OPTS="(${ZH_MSGMERGE_OPTS:---previous})"
 
 type ZH_POST_OCC &>/dev/null || ZH_POST_OCC(){ :; }
 
@@ -155,7 +155,10 @@ occ_conv "$newtype" "$oldtype" "$new"{,".$oldtype"} ||
 
 ZH_POST_OCC
 
+cp "$old"{,'~'}
+msgattrib --translated -o "$old"{,}
 msgcat -o "$old.all" --use-first "$old" "$new.$oldtype"
+
 msgmerge --lang="zh_$oldtype" "${ZH_MSGMERGE_OPTS[@]}" -o "$old"{,.all} "$pot" ||
 	die "msgmerge returned $?."
 
