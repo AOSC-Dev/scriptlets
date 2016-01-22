@@ -23,25 +23,36 @@ preserve:,no-preserve:,parents,recursive,reflink:,remove-destination,sparse:,str
 symbolic-link,suffix:,target-directory:,no-target-directory,update,verbose,one-file-system,context:,help,version \
 -n "$0" -- "$@")" || exit $?
 eval gopt="($gopt)"
+gargc=${#gopt[@]}
 
-f=0
-for o in "${gopt[@]}"; do
-	[[ "$o" == -- ]] && break
-	((f++))
+for ((f=0; f<gargc; f++)); do
+	case "${gopt[f]}" in
+		--)	break;;
+		-t|--target-directory)  # target dir
+			files=("${gopt[f+1]}");; # only consider last one
+		--target-directory=*)   # ditto
+			files=("${gopt[f]#--target-directory=");;
+	esac
 done
 
 samefs=1
-curstate=''
-file=("${gopt[@]:f+1}")
+curpoint=''
+files+=("${gopt[@]:f+1}")
 gopt=("${gopt[@]:0:f}")
+# iterate through all files.
+# `cp -l` works if all source and destination are in the same fs,
+# comparing with the previous one effectively tells us if they are all the same.
+
+# todo: we should actually sort things into l-buckets and non-l-buckets
 for o in "${file[@]}"; do
+	o=$(readlink -m "${o}")x o=${o%x}
 	while [[ -n "${mount_state[$o]}" && "$o" ]]; do
 		o="${o%/*}"
 	done
 	if [[ -n "${mount_state[$o]}" ]]; then
 		samefs=0 # dontknow.
 		break
-	elif [[ -n "$curstate" ]]; then
+	elif [[ -n "$curpoint" ]]; then
 		curstate="${mount_state[$o]}"
 	elif [[ "${mount_state[$o]}" != "$curstate" ]]; then
 		samefs=0
