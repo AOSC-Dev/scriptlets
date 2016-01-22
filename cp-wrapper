@@ -31,7 +31,7 @@ for ((f=0; f<gargc; f++)); do
 		-t|--target-directory)  # target dir
 			files=("${gopt[f+1]}");; # only consider last one
 		--target-directory=*)   # ditto
-			files=("${gopt[f]#--target-directory=");;
+			files=("${gopt[f]#--target-directory=}");;
 	esac
 done
 
