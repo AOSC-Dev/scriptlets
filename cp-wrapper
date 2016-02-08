@@ -7,14 +7,12 @@
 
 declare -A mount_state
 # initialization: mtab
-IFS=' '
-while read fs mpoint type opts dump pass; do
-	mpoint="$(echo -e "${mpoint%/}-")"
+while IFS=' ' read -r fs mpoint type opts dump pass; do
+	mpoint="$(printf %s- "${mpoint%/}")"
 	mpoint="${mpoint%-}"
 	[[ fs == *fs ]] || fs="$(readlink -e "$fs")"
 	mount_state["$mpoint"]="${fs%/} $type $opts $dump $pass"
 done < /etc/mtab
-IFS=$' \t\n'
 
 # argument processing
 gopt="$(getopt -o abdfiHlLnPpRrsStTuvxZ \
