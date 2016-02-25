@@ -12,13 +12,32 @@ die(){ printf 'mkfile: error: %s' "$1"; exit "${2-1}"; }
 usage()
 {
 	echo "\
-Usage:	mkfile [ -qnv ] [ -i INFILE ] [ -b BLOCKSIZE_MAX ] size[bkgtpe] FILES...
+Usage:	mkfile [ -qnvp ] [-m MODE] [ -i INFILE ] [ -b BS ] size[bkgtpe] FILES...
 	mkfile -?
 
-max_blocksize is 1048576 bytes by default.
+blocksize is 1048576 bytes by default. By default, the remainder from size%bs
+is added with an additional dd pass in copy mode.
 
 The \`b' suffix denotes block numbers; for compatibility, the default blocksize
 used for this calculation is 512."
+}
+
+usage_more(){
+	usage
+	echo "Options:
+-q	Turn off verbose output. This is the default.
+-v	Turn on verbose output (looks like '{fn} {n}bytes @ {mode} -> {exit}')
+-b BS	Sets blocksize for copy/pipe as well as for size calculation.
+-i FILE	Sets the input file for dd (\`copy' mode only).
+-m MODE	Sets the operation mode. Possible values are:
+	copy	dd-from-infile. Creates a regular file, slow. Default.
+	seek	dd-seek. Creates a sparse file (bad for swap), fast. See -n.
+	alloc	fallocate. Creates a regular file, fast.
+	redir	printf-pat-redir. Creates a regular file, slow.
+	
+-p PAT	The byte pattern to use in pipe mode. Do not use NUL bytes.
+
+".
 }
 
 humanreadable ()
@@ -42,16 +61,21 @@ humanreadable ()
 bs=1048576 # bigger, better, faster!
 hbs=512    # the bs used for humanreadable, in order to respect 'mkfile'.
 quiet=0
+method=copy # copy/seek/alloc
+noremain=0
+verbose=0
+keepgoing=0
 INFILE=/dev/zero
 
-while getopts 'i:b:qnavr?' opt
+while getopts 'i:b:m:qnavr?' opt
 do
   case $opt in
 	b) bs=$OPTARG hbs=$bs	;;
-	i) INFILE=$OPTARG	;;
-	q) quiet=1		;;
-	n) trunc=1		;; # dd seek-only
-	a) alloc=1		;; # use fallocate instead
+	i) INFILE=$OPTARG;;
+	q) verbose=0		;;
+	k) keepgoing=1		;;
+	n) method=seek		;; # dd seek-only
+	m) method=optarg	;;
 	r) noremain=1		;; # ignore (size % bs) difference
 	v) verbose=1		;; # %s %llu bytes stdout; METHOD stderr; \n stdout.
 	\?) usage_more; exit	;;
