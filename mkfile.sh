@@ -7,15 +7,18 @@
 
 # wrapper for dd and fallocate to act like Solaris' mkfile utility.
 
+die(){ printf 'mkfile: error: %s' "$1"; exit "${2-1}"; }
+
 usage()
 {
 	echo "\
 Usage:	mkfile [ -qnv ] [ -i INFILE ] [ -b BLOCKSIZE_MAX ] size[bkgtpe] FILES...
+	mkfile -?
+
 max_blocksize is 1048576 bytes by default.
 
 The \`b' suffix denotes block numbers; for compatibility, the default blocksize
 used for this calculation is 512."
-	exit 2
 }
 
 humanreadable ()
@@ -30,6 +33,7 @@ humanreadable ()
   		*t)	multiplier=$((1<<40))	;;
   		*p)	multiplier=$((1<<50))	;;
   		*e)	multiplier=$((1<<60))	;;
+  	# for z and y, consider 
 	esac
 	numeric=${1%[bkmgtpe]}
 	printf "$((multiplier * numeric))"
@@ -50,7 +54,8 @@ do
 	a) alloc=1		;; # use fallocate instead
 	r) noremain=1		;; # ignore (size % bs) difference
 	v) verbose=1		;; # %s %llu bytes stdout; METHOD stderr; \n stdout.
-	*) usage		;;
+	\?) usage_more; exit	;;
+	*) usage; exit 2	;;
   esac
 done
 
@@ -58,13 +63,13 @@ shift $((OPTIND-2))
 
 
 if [ -z "$1" ]; then
-  echo "ERROR: No size specificed"
+  die "No size specificed"
 fi
 if [ -z "$2" ]; then
   echo "ERROR: No filename specificed"
 fi
 
-SIZE=`humanreadable $1`
+SIZE=`humanreadable $1` || die "Invalid 
 FILENAME="$2"
 
 BS=`humanreadable $bs`
