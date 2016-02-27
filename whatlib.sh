@@ -83,6 +83,8 @@ shsplit(){
 				fi
 				;;
 			[[:space:]]*)
+				_shsplit_out+=("$thisword")
+				thisword=''
 				i=${i##+([[:space:]])}
 				;;
 			*)
