@@ -81,6 +81,7 @@ shsplit(){
 				else
 					thisword+=\$
 				fi
+				;;
 			[[:space:]]*)
 				i=${i##+([[:space:]])}
 				;;
