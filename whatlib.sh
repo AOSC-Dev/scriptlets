@@ -33,6 +33,7 @@ _ancient_longopt_handler(){
 # what, implementing that 'disregard quotes mid-token'? No.\
 # robustness note: many end-quote replacments should test for the existance of the pattern first,
 # and return 42 if patt not present.
+# fixme: backslash even-odd not checked in patterns! this is fatal.
 shsplit(){
 	_shsplit_out=()
 	shopt -s extglob
@@ -44,7 +45,7 @@ shsplit(){
 			"'"*)	# single quote, posix.1:2013v3c2s2.2.2
 				i=${i#\'}
 				# use till first "'"
-				tmp+=${i%%\'*}
+				tmp=${i%%\'*}
 				i=${i#"$tmp"\'}
 				thisword+=$tmp
 				;;
@@ -56,13 +57,11 @@ shsplit(){
 				i=${i#'$'}
 				if ((_shsplit_ksh_cquote)); then
 					i=${i#\'}
-					tmp+=${i%%\'*}
-					i=${i#"$tmp"\'}
-					# \' crap this time
-					while [[ $tmp == *!(\\)\\ ]]; do
-						tmp+="\\'"${i%%\'*}
-						i=${i#"$tmp"}
-					done
+					# dquote & norm magic
+					tmp=${i%%!(!(\\)\\)\'*}
+					i=${i#"$tmp"}
+					tmp=${i:0:2}
+					i=${i:3}
 					# I am too lazy to play with you guys. Go get it, eval.
 					eval "thisword+=$'$tmp'"
 				else
@@ -100,10 +99,9 @@ shsplit(){
 
 _shsplit_eat_till_special(){
 	local thisword2
-	# todo: improve dquote and cquote like this
 	tmp=${i%%!(\\)[\$\'\"[:space:]]*}	# first non-escaped crap
 	i=${i#"$tmp"}
-	tmp=${i:1:0}				# add back the extra !(\\) char killed
+	tmp=${i:0:1}				# add back the extra !(\\) char killed
 	i=${i:1}
 	_shsplit_soft_backslash
 	thisword+=$thisword2
@@ -112,15 +110,10 @@ _shsplit_eat_till_special(){
 _shsplit_dquote(){
 	local thisword2
 	i=${i#\"}
-	# as naive as squote
-	tmp=${i%%\"*}
-	i=${i#"$tmp"\"}
-	# now resolve \" crap
-	while [[ $tmp == *!(\\)\\ ]]; do
-		tmp+='"'${i%%\"*}
-		i=${i#"$tmp"}
-	done
-	# resolve \\ and \$'\n'
+	tmp=${i%%!(!(\\)\\)\"*}		# first non-escaped "
+	i=${i#"$tmp"}
+	tmp=${i:0:2}			# add back the extra !(!(\\)\\) chars killed
+	i=${i:3}			# kill three -- including "
 	_shsplit_soft_backslash
 	dquote_ret=$thisword2
 }
