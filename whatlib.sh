@@ -92,6 +92,7 @@ shsplit(){
 				;;
 		esac
 	done
+	[[ $thisword ]] && _shsplit_out+=("$thisword")
 }
 
 _shsplit_eat_till_special(){
