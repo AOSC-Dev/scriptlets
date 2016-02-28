@@ -34,6 +34,7 @@ _ancient_longopt_handler(){
 # robustness note: many end-quote replacments should test for the existance of the pattern first,
 # and return 42 if patt not present.
 # fixme: backslash even-odd not checked in patterns! this is fatal.
+#	 You will need to have an extra var to hold ${tmp##[!\\]} and count.
 shsplit(){
 	_shsplit_out=()
 	shopt -s extglob
@@ -74,6 +75,8 @@ shsplit(){
 					_shsplit_dquote
 					if ((_shsplit_bash_moquote == 2)); then
 						# re-escape. dirty, right?
+						# only do this when you fscking trust the input.
+						# no, I will not escape \$ and \` for you.
 						dquote_ret=${dquote_ret//\\/\\\\}
 						dquote_ret=${dquote_ret//\"/\\\"}
 						eval 'dquote_ret=$"'"$dquote_ret\""
