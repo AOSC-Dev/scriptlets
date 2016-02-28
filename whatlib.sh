@@ -30,19 +30,22 @@ _ancient_longopt_handler(){
 
 # shsplit "str" -> _shsplit_out[]
 # shlex.split()-like stuff
-# what, implementing that 'disregard quotes mid-token'? No.
+# what, implementing that 'disregard quotes mid-token'? No.\
+# robustness note: many end-quote replacments should test for the existance of the pattern first,
+# and return 42 if patt not present.
 shsplit(){
 	_shsplit_out=()
 	shopt -s extglob
 	local _shsplit_ksh_cquote=1 _shsplit_bash_moquote=1
 	local i="$1" thisword='' tmp='' dquote_ret
+	# debug tip: set -xv freaks out for `[['.
 	while [[ $i ]]; do
 		case $i in
 			"'"*)	# single quote, posix.1:2013v3c2s2.2.2
 				i=${i#\'}
 				# use till first "'"
 				tmp+=${i%%\'*}
-				i=${i#"$tmp"}
+				i=${i#"$tmp"\'}
 				thisword+=$tmp
 				;;
 			"\""*)	# double quote, posix.1:2013v3c2s2.2.2
@@ -54,10 +57,10 @@ shsplit(){
 				if ((_shsplit_ksh_cquote)); then
 					i=${i#\'}
 					tmp+=${i%%\'*}
-					i=${i#"$tmp"}
+					i=${i#"$tmp"\'}
 					# \' crap this time
 					while [[ $tmp == *!(\\)\\ ]]; do
-						tmp+=\'${i%%\'*}
+						tmp+="\\'"${i%%\'*}
 						i=${i#"$tmp"}
 					done
 					# I am too lazy to play with you guys. Go get it, eval.
@@ -83,7 +86,7 @@ shsplit(){
 				fi
 				;;
 			[[:space:]]*)
-				_shsplit_out+=("$thisword")
+				[[ $thisword ]] && _shsplit_out+=("$thisword")
 				thisword=''
 				i=${i##+([[:space:]])}
 				;;
@@ -96,24 +99,34 @@ shsplit(){
 }
 
 _shsplit_eat_till_special(){
-	tmp=${i%%[\$\'\"[:space:]]}
+	local thisword2
+	# todo: improve dquote and cquote like this
+	tmp=${i%%!(\\)[\$\'\"[:space:]]*}	# first non-escaped crap
 	i=${i#"$tmp"}
-	thisword+=$tmp
+	tmp=${i:1:0}				# add back the extra !(\\) char killed
+	i=${i:1}
+	_shsplit_soft_backslash
+	thisword+=$thisword2
 }
 
 _shsplit_dquote(){
-	local thisword2 tmp2
+	local thisword2
 	i=${i#\"}
 	# as naive as squote
 	tmp=${i%%\"*}
-	i=${i#"$tmp"}
+	i=${i#"$tmp"\"}
 	# now resolve \" crap
 	while [[ $tmp == *!(\\)\\ ]]; do
-		tmp+=\"${i%%\"*}
+		tmp+='"'${i%%\"*}
 		i=${i#"$tmp"}
 	done
 	# resolve \\ and \$'\n'
-	thisword2=''
+	_shsplit_soft_backslash
+	dquote_ret=$thisword2
+}
+
+_shsplit_soft_backslash(){
+	local tmp2
 	while [[ $tmp ]]; do
 		case $tmp in
 			'\\'*)
@@ -133,5 +146,4 @@ _shsplit_dquote(){
 				;;
 		esac
 	done
-	dquote_ret=$thisword2
 }
