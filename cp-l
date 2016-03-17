@@ -1,5 +1,5 @@
 #!/bin/bash
-# cp-wrapper: Determines if we are doing the cp job in the same fs.
+# cp-l: Determines if we are doing the cp job in the same fs.
 # If so, add '-l' to cp.
 # Arguments from cp (GNU coreutils) 8.23, therefore:
 # @license GPL-3.0+
