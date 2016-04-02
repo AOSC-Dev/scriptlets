@@ -8,9 +8,11 @@ shopt -s extglob
 declare -A mount_state
 # initialization: mtab
 while IFS=' ' read -r fs mpoint type opts dump pass; do
-	mpoint="$(printf %s- "${mpoint%/}")"
+	# hey printf eat the escapes
+	mpoint="$(printf %b- "${mpoint%/}")"
 	mpoint="${mpoint%-}"
-	[[ fs == *fs ]] || fs="$(readlink -e "$fs")"
+	# hey wut is dis
+	# [[ $fs == *fs ]] || fs="$(readlink -e "$fs")"
 	mount_state["$mpoint"]="${fs%/} $type $opts $dump $pass"
 done < /etc/mtab
 
