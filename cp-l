@@ -3,7 +3,7 @@
 # If so, add '-l' to cp.
 # Arguments from cp (GNU coreutils) 8.23, therefore:
 # @license GPL-3.0+
-
+shopt -s extglob
 
 declare -A mount_state
 # initialization: mtab
@@ -23,41 +23,75 @@ symbolic-link,suffix:,target-directory:,no-target-directory,update,verbose,one-f
 eval gopt="($gopt)"
 gargc=${#gopt[@]}
 
+target_is_dir=0
 for ((f=0; f<gargc; f++)); do
 	case "${gopt[f]}" in
 		--)	break;;
-		-t|--target-directory)  # target dir
-			files=("${gopt[f+1]}");; # only consider last one
-		--target-directory=*)   # ditto
-			files=("${gopt[f]#--target-directory=}");;
+		-t|--target-directory)			# target dir
+			target_is_dir=1
+			target="${gopt[f+1]}";;		# only consider last one
+		--target-directory=*)			# ditto
+			target_is_dir=1
+			target="${gopt[f]#--target-directory=}";;
 	esac
 done
 
-samefs=1
-curpoint=''
-files+=("${gopt[@]:f+1}")
+srcf=("${gopt[@]:f+1}")
 gopt=("${gopt[@]:0:f}")
-# iterate through all files.
-# `cp -l` works if all source and destination are in the same fs,
-# comparing with the previous one effectively tells us if they are all the same.
+if [[ $target == '' ]]; then
+	target=${srcf[-1]}
+	unset srcf[-1]
+fi
 
-# todo: we should actually sort things into l-buckets and non-l-buckets
-for o in "${file[@]}"; do
-	o=$(readlink -m "${o}")x o=${o%x}
-	while [[ -n "${mount_state[$o]}" && "$o" ]]; do
-		o="${o%/*}"
+fs_name_maybe(){
+	fs=$1
+	fs=$(readlink -m "$f"; echo x) o=${ofx}
+	fs=${f/#'//'+(/)/'/'}			# normalize abs path
+	if [[ $fs == //* ]]; then		# don't do the stupid thing on //
+		fs=//
+		return
+	fi
+	local components=() IFS=/
+	read -a components <<< "$fs"
+	while ((${#components[@]})); do
+		fs="${components[*]}"
+		if [[ "${mount_state[$fs]}" != '' ]]; then
+			return
+		fi
+		unset components[-1]
 	done
-	if [[ -n "${mount_state[$o]}" ]]; then
-		samefs=0 # dontknow.
-		break
-	elif [[ -n "$curpoint" ]]; then
-		curstate="${mount_state[$o]}"
-	elif [[ "${mount_state[$o]}" != "$curstate" ]]; then
-		samefs=0
-		break
+	false
+}
+
+files_link=()
+files_norm=()
+fs_name_maybe "$target"		&&
+target_fs=$fs			&& # if we fail target_fs, then it's pointless to do the check.
+
+for f in "${srcf[@]}"; do
+	if fs_name_maybe "$f"; then
+		files_link+=("$f")
+	else
+		files_norm+=("$f")
 	fi
 done
 
-((samefs)) && gopt+=("-l")
+# moral dilemma: should we try the linked cp first, or the normal cp first?
+# go for the linked one.
 
-exec cp "${gopt[@]}" -- "${file[@]}"
+if ((target_is_dir)); then
+	gopt+=(--target-directory="$target")
+else
+	files_link+=("$target")
+	files_norm+=("$target")
+fi
+
+# note: when target_is_dir=true; we cmp w/ 0; otherwise 1.
+if ((${#files_link[@]} > (!target_is_dir) )); then
+	cp "${gopt[@]}" --link -- "${files_link[@]}"
+fi &&
+if ((${#files_norm[@]} > (!target_is_dir) )); then
+	cp "${gopt[@]}" --link -- "${files_norm[@]}" || exit
+fi
+
+
