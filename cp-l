@@ -91,7 +91,7 @@ if ((${#files_link[@]} > (!target_is_dir) )); then
 	cp "${gopt[@]}" --link -- "${files_link[@]}"
 fi &&
 if ((${#files_norm[@]} > (!target_is_dir) )); then
-	cp "${gopt[@]}"        -- "${files_norm[@]}" || exit
+	cp "${gopt[@]}"        -- "${files_norm[@]}"
 fi
 
 
