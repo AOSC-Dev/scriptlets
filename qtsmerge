@@ -1,0 +1,52 @@
+#!/bin/bash -e
+# 'msgmerge' for Qt Ts.
+# Very naive method -- transform to po{,t}, merge and sweep.
+trap '
+	_ret=("${PIPESTATUS[@]}") IFS=,
+	printf 'E:\t%s' "Line $LINENO, rets: ${_ret[*]}" >&2
+	exit "$_ret"
+	:' ERR
+
+if [[ $1 == '--help' ]]; then
+	cat <<'EOF'
+qtsmerge: merges Qt ts files using msgmerge for drunk guys.
+The usage is the same as msgmerge, except that -U is always set.
+(I don't want to parse -o for now)
+EOF
+	exec msgmerge --help
+
+# die early die quick
+command -v msgmerge mktemp >/dev/null
+
+if command -v lconvert >/dev/null; then
+	ts2po(){ lconvert -if ts -of po -locations relative -o "$2" "$1"; }
+	po2ts(){ lconvert -if po -of ts -locations absolute -o "$2" "$1"; }
+elif command -v po2ts ts2po >/dev/null; then
+	:
+else
+	false # No convertors found!
+fi
+
+tmpdir="$(mktemp -d)"
+args=("$@")
+
+cmd_subst(){
+	result=$("$@"; echo x)
+	result=${result%x}
+}
+
+# wild assumptions on args
+pos=()
+tss=()
+for ts in "${args[-2]}" "${args[-1]}"; do
+	cmd_subst basename -- "$ts"
+	pos+=("${tmpdir}/${result%.[tT][sS]}.po")
+	tss+=("$ts")
+	ts2po "$ts" "${pos[-1]}"
+done
+
+# 0: po, 1: pot
+cp -l "${tss[0]}"{,.bak}
+msgmerge -o "${pos[1]}" "${@:1:$#-2}" "${pos[1]}" "${pos[0]}"
+
+po2ts "${pos[0]}" "${tss[0]}"
