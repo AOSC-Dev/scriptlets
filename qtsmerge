@@ -10,7 +10,7 @@ trap '
 if [[ $1 == '--help' ]]; then
 	cat <<'EOF'
 qtsmerge: merges Qt ts files using msgmerge for drunk guys.
-The usage is the same as msgmerge, except that -U is always set.
+The usage is the same as msgmerge, except that the output is always def.po.
 (I don't want to parse -o for now)
 EOF
 	exec msgmerge --help
