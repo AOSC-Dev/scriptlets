@@ -71,10 +71,19 @@ function cp_dtb() {
   print_tick
 }
 
+function uboot_binman_hack() {
+  cp lib/libfdt/pylibfdt/libfdt.i tools/
+  LDFLAGS="" CFLAGS= VERSION="u-boot-2017.07-rc2" CPPFLAGS="-Wall -Wstrict-prototypes -O2 -fomit-frame-pointer    -include ./include/libfdt_env.h -idirafterinclude -idirafter./arch/arm/include -I./lib/libfdt -I./tools -DUSE_HOSTCC -D__KERNEL_STRICT_NAMES -D_GNU_SOURCE " OBJDIR=tools SOURCES="lib/libfdt/fdt.c lib/libfdt/fdt_ro.c lib/libfdt/fdt_wip.c lib/libfdt/fdt_sw.c lib/libfdt/fdt_rw.c lib/libfdt/fdt_strerror.c lib/libfdt/fdt_empty_tree.c lib/libfdt/fdt_addresses.c lib/libfdt/fdt_overlay.c lib/libfdt/fdt_region.c tools/libfdt.i" SWIG_OPTS="-I./lib/libfdt -I./lib" python2 lib/libfdt/pylibfdt/setup.py --quiet build_ext --build-lib tools > /dev/null 2>&1
+  LDFLAGS="" CFLAGS= VERSION="u-boot-2017.07-rc2" CPPFLAGS="-Wall -Wstrict-prototypes -O2 -fomit-frame-pointer    -include ./include/libfdt_env.h -idirafterinclude -idirafter./arch/arm/include -I./lib/libfdt -I./tools -DUSE_HOSTCC -D__KERNEL_STRICT_NAMES -D_GNU_SOURCE " OBJDIR=tools SOURCES="lib/libfdt/fdt.c lib/libfdt/fdt_ro.c lib/libfdt/fdt_wip.c lib/libfdt/fdt_sw.c lib/libfdt/fdt_rw.c lib/libfdt/fdt_strerror.c lib/libfdt/fdt_empty_tree.c lib/libfdt/fdt_addresses.c lib/libfdt/fdt_overlay.c lib/libfdt/fdt_region.c tools/libfdt.i" SWIG_OPTS="-I./lib/libfdt -I./lib" python3 lib/libfdt/pylibfdt/setup.py --quiet build_ext --build-lib tools > /dev/null 2>&1
+}
+
 function build_uboot() {
   STAGE="[*] Building U-Boot... "
   TGT_COUNT=$(echo "${UBOOT_TARGETS}" | wc -w)
   PRGS=0
+  if [[ $(python -c "import sys; print(sys.version_info[0])") == "3" ]]; then
+    NEED_HACK=1
+  fi
   for i in $UBOOT_TARGETS; do
     ((PRGS+=1))
     UBOOT_CNAME="$(echo "$i" | cut -d = -f 1)"
@@ -89,6 +98,7 @@ function build_uboot() {
     do
       patch -Np1 -s -i "${j}" >> "${LOGDIR}/patch.log"
     done
+    if [[ $NEED_HACK ]]; then uboot_binman_hack; fi
     EXDESC="> Building       " print_progress
     { echo "${UBOOT_CNAME}"; make "${UBOOT_CNAME}"_defconfig; } >> "${LOGDIR}/u-boot.log" 2>&1
     make CROSS_COMPILE="${CROSS_COMPILE}" -j"$(nproc)" >> "${LOGDIR}/u-boot.log" 2>&1
@@ -125,7 +135,7 @@ function build_linux() {
     if [[ ! -d "${LINUX_DIR}" ]]; then
       EXDESC="> Decompressing   " print_progress
       tar xf "${LINUX_SRC}"
-      LINUX_DIR="$(echo linux-*)"
+      LINUX_DIR="${LINUX_VER}"
       pushd "${LINUX_DIR}" > /dev/null
       EXDESC="> Patching   " print_progress
       for i in ../patches/linux/*
@@ -162,6 +172,7 @@ function build_linux() {
     rm -r -- "$TMPDIR"
     popd > /dev/null
   done
+  print_progress "${STAGE}" && print_tick
 }
 
 if [[ ! "${CROSS_COMPILE}" ]]; then
@@ -205,7 +216,8 @@ if ! test -f "${UBOOTTBLNAME}"; then
     exit 127
   fi
 fi
-echo "[*] Downloading Linux kernel: ${TBLNAME//\.tar*/}..."
+LINUX_VER=${TBLNAME//\.tar*/}
+echo "[*] Downloading Linux kernel: ${LINUX_VER}..."
 if [[ ${BUILD_CHOICE} -eq 3  ]]; then
   TBLURL="https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/snapshot/linux-next-${TBLNAME//\.tar*/}.tar.gz"
   TBLNAME="linux-${TBLNAME}.tar.gz"
@@ -266,8 +278,8 @@ if [[ $((FILE_COUNT)) -lt 76 ]]; then
 	adie
 fi
 echo "[*] Tarring final tarball..."
-TARBALL_NAME="aosc-os-armel-sunxi-boot-$(date +%Y%m%d)-g${GIT_REV}-$(basename "${LINUX_DIR}")-$(basename ${UBOOT_DIR})"
-tar cJf "$(pwd)/${TARBALL_NAME}.tar.xz" "${OUTDIR}/"*
+TARBALL_NAME="aosc-os-armel-sunxi-boot-$(date +%Y%m%d)-g${GIT_REV}-$(basename "${LINUX_DIR}")-$(basename ${UBOOT_VERSION})"
+tar cJf "$(pwd)/${TARBALL_NAME}.tar.xz" -C "${OUTDIR}" .
 FILE_SIZE=$(stat -c "%s" "$(pwd)/${TARBALL_NAME}.tar.xz")
 if [[ $((FILE_SIZE)) -lt 20000000 ]]; then
 	echo "[!] Resulting file too small (only ${FILE_SIZE} bytes), suspecting a build failure!"
