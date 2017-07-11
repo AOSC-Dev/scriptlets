@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import warnings
+
 import bdflib
 
 def convert_bdf(bdffont):
@@ -10,15 +12,19 @@ def convert_bdf(bdffont):
             glyph = bdffont.glyphs_by_codepoint[i]
             data = glyph.data.copy()
             data.reverse()
-            expanded = [row<<(16-glyph.bbW) for row in data]
-            yield [row>>8 for row in expanded] + [row&0xff for row in expanded]
+            if glyph.bbW > 16:
+                warnings.warn("glyph U+%04x width %d > 16, dropped" % (i, glyph.bbW))
+                yield [0]*32
+            else:
+                expanded = [row<<(16-glyph.bbW) for row in data]
+                yield [row>>8 for row in expanded] + [row&0xff for row in expanded]
         else:
             yield [0]*32
 
 def format_header(glyphs):
     yield 'static unsigned char font_utf8[2097152] = {'
     for k, row in enumerate(glyphs):
-        if k in (0, 10, 13, 0xFFFF) or 0xD800 <= k <= 0xDFFF:
+        if k < 0x20 or 0xD800 <= k <= 0xDFFF or k == 0xFFFF:
             yield '// %d  ;' % k
         else:
             yield '// %d %s ;' % (k, chr(k))
