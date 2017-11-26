@@ -1,0 +1,92 @@
+--- a/v8/src/objects-body-descriptors.h	2016-07-28 12:17:37.000000000 -1000
++++ b/v8/src/objects-body-descriptors.h	2017-06-16 01:20:50.026665439 -1000
+@@ -99,7 +99,7 @@
+
+   template <typename StaticVisitor>
+   static inline void IterateBody(HeapObject* obj, int object_size) {
+-    IterateBody(obj);
++    IterateBody<StaticVisitor>(obj);
+   }
+ };
+
+diff -uNr chromium-53.0.2785.143.orig//v8//src/objects.h chromium-53.0.2785.143/v8//src/objects.h
+--- a/v8//src/objects.h	2016-09-29 09:05:23.000000000 -1000
++++ b/v8//src/objects.h	2017-06-17 00:04:02.287124975 -1000
+@@ -3199,22 +3199,10 @@
+  public:
+   typedef Shape ShapeT;
+
+-  // Wrapper methods
+-  inline uint32_t Hash(Key key) {
+-    if (Shape::UsesSeed) {
+-      return Shape::SeededHash(key, GetHeap()->HashSeed());
+-    } else {
+-      return Shape::Hash(key);
+-    }
+-  }
+-
+-  inline uint32_t HashForObject(Key key, Object* object) {
+-    if (Shape::UsesSeed) {
+-      return Shape::SeededHashForObject(key, GetHeap()->HashSeed(), object);
+-    } else {
+-      return Shape::HashForObject(key, object);
+-    }
+-  }
++  // Wrapper methods.  Defined in src/objects-inl.h
++  // to break a cycle with src/heap/heap.h.
++  inline uint32_t Hash(Key key);
++  inline uint32_t HashForObject(Key key, Object* object);
+
+   // Returns a new HashTable object.
+   MUST_USE_RESULT static Handle<Derived> New(
+diff -uNr chromium-53.0.2785.143.orig//v8//src/objects-inl.h chromium-53.0.2785.143/v8//src/objects-inl.h
+--- a//v8//src/objects-inl.h	2016-09-29 09:05:23.000000000 -1000
++++ b/v8//src/objects-inl.h	2017-06-17 00:03:08.202099672 -1000
+@@ -38,6 +38,26 @@
+ namespace v8 {
+ namespace internal {
+
++template <typename Derived, typename Shape, typename Key>
++uint32_t HashTable<Derived, Shape, Key>::Hash(Key key) {
++  if (Shape::UsesSeed) {
++    return Shape::SeededHash(key, GetHeap()->HashSeed());
++  } else {
++    return Shape::Hash(key);
++  }
++}
++
++
++template <typename Derived, typename Shape, typename Key>
++uint32_t HashTable<Derived, Shape, Key>::HashForObject(Key key,
++                                                       Object* object) {
++  if (Shape::UsesSeed) {
++    return Shape::SeededHashForObject(key, GetHeap()->HashSeed(), object);
++  } else {
++    return Shape::HashForObject(key, object);
++  }
++}
++
+ PropertyDetails::PropertyDetails(Smi* smi) {
+   value_ = smi->value();
+ }
+--- a/v8/src/heap/mark-compact.cc	2016-09-29 09:05:23.000000000 -1000
++++ b/v8/src/heap/mark-compact.cc	2017-06-17 07:19:14.738159288 -1000
+@@ -3614,6 +3614,9 @@
+ #endif
+ }
+
++#pragma GCC diagnostic push
++#pragma GCC diagnostic warning "-Wattributes"
++
+ template <PointerDirection direction>
+ class PointerUpdateJobTraits {
+  public:
+@@ -3701,6 +3704,8 @@
+   }
+ };
+
++#pragma GCC diagnostic pop
++
+ int NumberOfPointerUpdateTasks(int pages) {
+   if (!FLAG_parallel_pointer_update) return 1;
+   const int kMaxTasks = 4;
