@@ -29,6 +29,7 @@ def get_json_from_file(local_file):
 
 
 def get_json_from_url(repology_url):
+    print(repology_url)
     with urllib.request.urlopen(repology_url) as url:
         jsonsrc = json.loads(url.read().decode())
     return jsonsrc
@@ -47,6 +48,14 @@ def get_pkg_tuple(jsonsrc):
         result.append((pkg_name, newest_ver))
     return result
 
+def get_pkg_tuple_aosc(jsonsrc):
+    result = []
+    for pkg in jsonsrc["packages"]:
+        newest_ver = pkg["upstream_version"]
+        pkg_name = pkg["name"]
+        result.append((pkg_name, newest_ver))
+
+    return result
 
 def find_newest_pkgs(jsonfile=None, jsonurl=None, dumpfile=None):
     result = []
@@ -54,9 +63,12 @@ def find_newest_pkgs(jsonfile=None, jsonurl=None, dumpfile=None):
 
     if jsonfile is not None:
         jsonsrc = get_json_from_file(jsonfile[0])
-        return get_pkg_tuple(jsonsrc)
+        if "packages" in jsonsrc:
+            return get_pkg_tuple_aosc(jsonsrc)
+        else:
+            return get_pkg_tuple(jsonsrc)
     elif jsonurl is not None:
-        jsonsrc = get_json_from_url(base_url + filter_url)
+        jsonsrc = get_json_from_url(jsonurl[0])
     else:
         base_url = "https://repology.org/api/v1/metapackages/"
         filter_url = "?inrepo=aosc&outdated=True"
@@ -77,7 +89,7 @@ def find_newest_pkgs(jsonfile=None, jsonurl=None, dumpfile=None):
 
 def find_spec(pkgname):
     result = subprocess.run(
-        ['find', '.', '-name', pkgname + '*'], stdout=subprocess.PIPE)
+        ['find', '.', '-name', pkgname], stdout=subprocess.PIPE)
     filepaths = result.stdout.decode('utf-8').split('\n')
     for f in filepaths:
         specfile = os.path.join(f, 'spec')
@@ -108,6 +120,8 @@ if __name__ == "__main__":
     parser.add_argument(
         '-d', '--dump', nargs=1, metavar='JSONFILE', help='Dump JSON files.')
     parser.add_argument(
+        '-u', '--url', nargs=1, metavar='URL', help='URL.')
+    parser.add_argument(
         '-c',
         '--contain',
         nargs=1,
@@ -123,7 +137,7 @@ if __name__ == "__main__":
 
     print("Found outdated pkgs...")
     newest_pkgs = find_newest_pkgs(
-        jsonfile=args.json, jsonurl=None, dumpfile=args.dump)
+        jsonfile=args.json, jsonurl=args.url, dumpfile=args.dump)
     print(len(newest_pkgs))
 
     if not args.replace:

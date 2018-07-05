@@ -12,6 +12,10 @@
 $ python3 update-pkgs.py -j ../repology.json  -c extra-graphics -r
 ```
 
+### Support source https://packages.aosc.io/
+1. $ wget "https://packages.aosc.io/srcupd/aosc-os-abbs?type=json&page=all" -O packages.json
+
+2. $ python3 update-pkgs.py -j ../packages.json  -c extra-graphics -r
 
 ## Rebuild packages
 1. Dump the packages list to rebuild

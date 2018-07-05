@@ -29,7 +29,7 @@ def get_pkgs(filename):
 def find_spec(pkgname):
     print("Bump %s ..." % pkgname)
     result = subprocess.run(
-        ['find', '.', '-name', pkgname + '*'], stdout=subprocess.PIPE)
+        ['find', '.', '-name', pkgname], stdout=subprocess.PIPE)
     filepaths = result.stdout.decode('utf-8').split('\n')
     for f in filepaths:
         specfile = os.path.join(f, 'spec')
