@@ -12,6 +12,18 @@
 $ python3 update-pkgs.py -j ../repology.json  -c extra-graphics -r
 ```
 
+### Save update info. as file
+
+```
+$ python3 update-pkgs.py -j ../repology.json -s cache.txt -c extra-graphics -r -q
+```
+
+### Save load cache file
+
+```
+$ python3 update-pkgs.py -l cache.txt -c extra-graphics -r -q
+```
+
 ### Support source https://packages.aosc.io/
 1. $ wget "https://packages.aosc.io/srcupd/aosc-os-abbs?type=json&page=all" -O packages.json
 

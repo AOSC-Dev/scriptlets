@@ -20,6 +20,13 @@ def write_file(dest_path, contents):
     with open(dest_path, "w") as f:
         f.writelines(contents)
 
+def dump_json(d, d_file):
+    json.dump(d, open(d_file, 'w'))
+
+
+def load_json(load_file):
+    return json.load(open(load_file))
+
 
 def get_json_from_file(local_file):
     with open(local_file, "r") as f:
@@ -112,6 +119,26 @@ def find_cur_ver(spec_path, new_ver):
     write_file(spec_path, contents)
     return cur_ver
 
+def classify(newest_pkgs, quite=None):
+    classify_dict = {}
+    for pkg in newest_pkgs:
+        pkg_path = find_spec(pkg[0])
+        if pkg_path is None:
+            if not quite:
+                print("WARNING pkg: %s is invalid" % pkg[0])
+        else:
+            category = pkg_path.split('/')[1]
+            if category in classify_dict:
+                classify_dict[category].append((pkg[0], pkg[1]))
+            else:
+                classify_dict[category] = []
+    # for k in classify_dict:
+    #     print(k, len(classify_dict[k]))
+    #     for i in classify_dict[k]:
+    #         print(i, end='')
+    #     print()
+    return classify_dict
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -119,6 +146,10 @@ if __name__ == "__main__":
         '-j', '--json', nargs=1, metavar='JSONFILE', help='Parse JSON file.')
     parser.add_argument(
         '-d', '--dump', nargs=1, metavar='JSONFILE', help='Dump JSON files.')
+    parser.add_argument(
+        '-l', '--load', nargs=1, metavar='CACHEFILE', help='Load Cache file.')
+    parser.add_argument(
+        '-s', '--save', nargs=1, metavar='CACHEFILE', help='Save Cache files.')
     parser.add_argument(
         '-u', '--url', nargs=1, metavar='URL', help='URL.')
     parser.add_argument(
@@ -132,20 +163,47 @@ if __name__ == "__main__":
         '--replace',
         action='store_true',
         help='Replace REPO with new version.')
+    parser.add_argument(
+        '-q',
+        '--quite',
+        action='store_true',
+        help='Ignore WARNING')
+
 
     args = parser.parse_args()
 
     print("Found outdated pkgs...")
-    newest_pkgs = find_newest_pkgs(
-        jsonfile=args.json, jsonurl=args.url, dumpfile=args.dump)
+
+    if args.load is not None:
+        with open(args.load[0], "r") as f:
+            cache_file = f.read()
+            cache_src = json.loads(cache_file)
+            if args.contain is not None:
+                if args.contain[0] in cache_src:
+                    newest_pkgs = cache_src[args.contain[0]]
+                else:
+                    print("%s already newest!" % args.contain[0])
+                    sys.exit(0)
+            else:
+                newest_pkgs = []
+                for k in cache_src.keys():
+                    newest_pkgs.extend(cache_src[k])
+    else:
+        newest_pkgs = find_newest_pkgs(
+            jsonfile=args.json, jsonurl=args.url, dumpfile=args.dump)
+
     print(len(newest_pkgs))
+
+    if args.save is not None:
+        dump_json(classify(newest_pkgs), args.save[0])
 
     if not args.replace:
         sys.exit(0)
     for pkg in newest_pkgs:
         pkg_path = find_spec(pkg[0])
         if pkg_path is None:
-            print("WARNING pkg: %s is invalid" % pkg[0])
+            if not args.quite:
+                print("WARNING pkg: %s is invalid" % pkg[0])
         elif args.contain[0] in pkg_path:
             print(pkg[0], pkg_path, find_cur_ver(pkg_path, pkg[1]), '->',
                   pkg[1])
