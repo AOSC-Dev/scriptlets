@@ -15,7 +15,7 @@ $ python3 update-pkgs.py -j ../repology.json  -c extra-graphics -r
 ### Save update info. as file
 
 ```
-$ python3 update-pkgs.py -j ../repology.json -s cache.txt -c extra-graphics -r -q
+$ python3 update-pkgs.py -j ../repology.json -s cache.txt
 ```
 
 ### Save load cache file
