@@ -20,6 +20,7 @@ def write_file(dest_path, contents):
     with open(dest_path, "w") as f:
         f.writelines(contents)
 
+
 def dump_json(d, d_file):
     json.dump(d, open(d_file, 'w'))
 
@@ -55,6 +56,7 @@ def get_pkg_tuple(jsonsrc):
         result.append((pkg_name, newest_ver))
     return result
 
+
 def get_pkg_tuple_aosc(jsonsrc):
     result = []
     for pkg in jsonsrc["packages"]:
@@ -63,6 +65,7 @@ def get_pkg_tuple_aosc(jsonsrc):
         result.append((pkg_name, newest_ver))
 
     return result
+
 
 def find_newest_pkgs(jsonfile=None, jsonurl=None, dumpfile=None):
     result = []
@@ -105,7 +108,7 @@ def find_spec(pkgname):
     return None
 
 
-def find_cur_ver(spec_path, new_ver):
+def find_cur_ver(spec_path, new_ver, only_patch=False):
     orig_spec = read_file(spec_path)
     contents = []
     cur_ver = ''
@@ -116,8 +119,19 @@ def find_cur_ver(spec_path, new_ver):
         elif 'REL=' not in line:
             contents.append(line)
 
-    write_file(spec_path, contents)
-    return cur_ver
+    cur_ver_list = cur_ver.split('.')
+    new_ver_list = new_ver.split('.')
+    if not only_patch:
+        write_file(spec_path, contents)
+        return cur_ver
+    else:
+        if len(cur_ver_list) == len(new_ver_list) and len(cur_ver_list) > 2 and cur_ver_list[:-1] == new_ver_list[:-1]:
+            write_file(spec_path, contents)
+            return cur_ver
+        else:
+            return None
+
+
 
 def classify(newest_pkgs, quite=None):
     classify_dict = {}
@@ -150,8 +164,7 @@ if __name__ == "__main__":
         '-l', '--load', nargs=1, metavar='CACHEFILE', help='Load Cache file.')
     parser.add_argument(
         '-s', '--save', nargs=1, metavar='CACHEFILE', help='Save Cache files.')
-    parser.add_argument(
-        '-u', '--url', nargs=1, metavar='URL', help='URL.')
+    parser.add_argument('-u', '--url', nargs=1, metavar='URL', help='URL.')
     parser.add_argument(
         '-c',
         '--contain',
@@ -164,11 +177,12 @@ if __name__ == "__main__":
         action='store_true',
         help='Replace REPO with new version.')
     parser.add_argument(
-        '-q',
-        '--quite',
+        '-p',
+        '--patch',
         action='store_true',
-        help='Ignore WARNING')
-
+        help='Replace REPO with patc\'s version.')
+    parser.add_argument(
+        '-q', '--quite', action='store_true', help='Ignore WARNING')
 
     args = parser.parse_args()
 
@@ -204,6 +218,12 @@ if __name__ == "__main__":
         if pkg_path is None:
             if not args.quite:
                 print("WARNING pkg: %s is invalid" % pkg[0])
-        elif args.contain[0] in pkg_path:
-            print(pkg[0], pkg_path, find_cur_ver(pkg_path, pkg[1]), '->',
-                  pkg[1])
+        elif args.contain is not None:
+            if args.contain[0] in pkg_path:
+                new_ver = find_cur_ver(pkg_path, pkg[1], args.patch)
+                if new_ver:
+                    print(pkg[0], pkg_path, new_ver, '->', pkg[1])
+        else:
+            new_ver = find_cur_ver(pkg_path, pkg[1], args.patch)
+            if new_ver:
+                print(pkg[0], pkg_path, new_ver, '->', pkg[1])
