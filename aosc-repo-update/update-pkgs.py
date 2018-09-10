@@ -108,7 +108,7 @@ def find_spec(pkgname):
     return None
 
 
-def find_cur_ver(spec_path, new_ver, only_patch=False):
+def find_cur_ver(spec_path, new_ver, only_patch=False, only_upgrad=False):
     orig_spec = read_file(spec_path)
     contents = []
     cur_ver = ''
@@ -121,15 +121,23 @@ def find_cur_ver(spec_path, new_ver, only_patch=False):
 
     cur_ver_list = cur_ver.split('.')
     new_ver_list = new_ver.split('.')
-    if not only_patch:
+
+    if only_patch or only_upgrad:
+        if len(cur_ver_list) == len(new_ver_list) and len(cur_ver_list) > 2 and cur_ver_list[:-1] == new_ver_list[:-1]:
+            if only_patch:
+                write_file(spec_path, contents)
+                return cur_ver
+            else:
+                return None
+        else:
+            if only_upgrad:
+                write_file(spec_path, contents)
+                return cur_ver
+            else:
+                return None
+    else:
         write_file(spec_path, contents)
         return cur_ver
-    else:
-        if len(cur_ver_list) == len(new_ver_list) and len(cur_ver_list) > 2 and cur_ver_list[:-1] == new_ver_list[:-1]:
-            write_file(spec_path, contents)
-            return cur_ver
-        else:
-            return None
 
 
 
@@ -177,10 +185,15 @@ if __name__ == "__main__":
         action='store_true',
         help='Replace REPO with new version.')
     parser.add_argument(
+        '-n',
+        '--normal',
+        action='store_true',
+        help='Upgrade REPO normal but not patch\'s version.')
+    parser.add_argument(
         '-p',
         '--patch',
         action='store_true',
-        help='Replace REPO with patc\'s version.')
+        help='Replace REPO with patch\'s version.')
     parser.add_argument(
         '-q', '--quite', action='store_true', help='Ignore WARNING')
 
@@ -220,7 +233,7 @@ if __name__ == "__main__":
                 print("WARNING pkg: %s is invalid" % pkg[0])
         elif args.contain is not None:
             if args.contain[0] in pkg_path:
-                new_ver = find_cur_ver(pkg_path, pkg[1], args.patch)
+                new_ver = find_cur_ver(pkg_path, pkg[1], args.patch, args.normal)
                 if new_ver:
                     print(pkg[0], pkg_path, new_ver, '->', pkg[1])
         else:
