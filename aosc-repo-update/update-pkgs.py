@@ -122,8 +122,9 @@ def find_cur_ver(spec_path, new_ver, only_patch=False, only_upgrad=False):
     cur_ver_list = cur_ver.split('.')
     new_ver_list = new_ver.split('.')
 
+    match_xy = cur_ver_list[0] == new_ver_list[0] and cur_ver_list[1] == new_ver_list[1]
     if only_patch or only_upgrad:
-        if len(cur_ver_list) == len(new_ver_list) and len(cur_ver_list) > 2 and cur_ver_list[:-1] == new_ver_list[:-1]:
+        if (len(new_ver_list) == 3 and match_xy) or (len(new_ver_list) == 4 and match_xy and cur_ver_list[2] == new_ver_list[2]):
             if only_patch:
                 write_file(spec_path, contents)
                 return cur_ver
