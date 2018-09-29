@@ -116,8 +116,6 @@ def find_cur_ver(spec_path, new_ver, only_patch=False, only_upgrad=False):
         if 'VER=' in line:
             cur_ver = line.split('=')[-1].strip()
             contents.append(line.replace(cur_ver, new_ver))
-        elif 'DUMMYSRC=1' in line:
-            return None
         elif 'REL=' not in line:
             contents.append(line)
 
