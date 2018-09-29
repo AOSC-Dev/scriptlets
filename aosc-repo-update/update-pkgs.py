@@ -116,13 +116,18 @@ def find_cur_ver(spec_path, new_ver, only_patch=False, only_upgrad=False):
         if 'VER=' in line:
             cur_ver = line.split('=')[-1].strip()
             contents.append(line.replace(cur_ver, new_ver))
+        elif 'DUMMYSRC=1' in line:
+            return None
         elif 'REL=' not in line:
             contents.append(line)
 
     cur_ver_list = cur_ver.split('.')
     new_ver_list = new_ver.split('.')
 
-    match_xy = cur_ver_list[0] == new_ver_list[0] and cur_ver_list[1] == new_ver_list[1]
+    if len(cur_ver_list) == 1:
+        match_xy = False
+    else:
+        match_xy = cur_ver_list[0] == new_ver_list[0] and cur_ver_list[1] == new_ver_list[1]
     if only_patch or only_upgrad:
         if (len(new_ver_list) == 3 and match_xy) or (len(new_ver_list) == 4 and match_xy and cur_ver_list[2] == new_ver_list[2]):
             if only_patch:
@@ -197,10 +202,16 @@ if __name__ == "__main__":
         help='Replace REPO with patch\'s version.')
     parser.add_argument(
         '-q', '--quite', action='store_true', help='Ignore WARNING')
+    parser.add_argument(
+        '-e', '--exclude', action='store_true', help='exclude pkgs from blacklist.txt')
 
     args = parser.parse_args()
 
     print("Found outdated pkgs...")
+
+    blacklist = None
+    if args.exclude:
+        blacklist = load_json('blacklist.txt')
 
     if args.load is not None:
         with open(args.load[0], "r") as f:
@@ -228,6 +239,8 @@ if __name__ == "__main__":
     if not args.replace:
         sys.exit(0)
     for pkg in newest_pkgs:
+        if blacklist and pkg[0] in blacklist:
+            continue
         pkg_path = find_spec(pkg[0])
         if pkg_path is None:
             if not args.quite:
