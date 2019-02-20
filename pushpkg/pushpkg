@@ -1,0 +1,12 @@
+#!/bin/bash
+if [ -z "$1" ]; then
+   echo "[!!!] Please specify a LDAP user!"
+   exit 1
+fi
+
+if [ -z "$2" ]; then
+   echo "[!!!] Please specify a branch!"
+   exit 1
+fi
+
+rsync -rltOvhze ssh --progress --omit-dir-times debs/* $1@repo.aosc.io:/mirror/debs/pool/"$2"/main
