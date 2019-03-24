@@ -9,4 +9,4 @@ if [ -z "$2" ]; then
    exit 1
 fi
 
-rsync -rltOvhze ssh --progress --omit-dir-times debs/* $1@repo.aosc.io:/mirror/debs/pool/"$2"/main
+rsync -rlOvhze ssh --progress debs/* $1@repo.aosc.io:/mirror/debs/pool/"$2"/main
