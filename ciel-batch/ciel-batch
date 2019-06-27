@@ -1,0 +1,6 @@
+#!/bin/bash
+for i in $@; do
+    ciel rollback
+    sleep 5
+    ciel build $i || read -p check
+done
