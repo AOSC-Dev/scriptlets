@@ -1,12 +1,33 @@
 #!/bin/bash
+_help_message() {
+    printf "\
+Usage:
+
+	pushpkg LDAP_USERNAME BRANCH [COMPONENT]
+
+	- LDAP_USERNAME: Your LDAP username.
+	- BRANCH: AOSC OS update branch (stable, stable-proposed, testing, etc.)
+	- [COMPONENT]: (Optional) Repository component (main, bsp-sunxi, etc.)
+                       Falls back to "main" if not specified.
+
+"
+}
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    _help_message
+    exit 0
+fi
+
 if [ -z "$1" ]; then
-   echo "[!!!] Please specify a LDAP user!"
+   echo -e "[!!!] Please specify a LDAP user!\n"
+   _help_message
    exit 1
 fi
 
 if [ -z "$2" ]; then
-   echo "[!!!] Please specify a branch!"
+   echo -e "[!!!] Please specify a branch!\n"
+   _help_message
    exit 1
 fi
 
-rsync --ignore-existing -rlOvhze ssh --progress debs/* $1@repo.aosc.io:/mirror/debs/pool/"$2"/main
+rsync --ignore-existing -rlOvhze ssh --progress debs/* ${1}@repo.aosc.io:/mirror/debs/pool/${2}/${3:-main}
