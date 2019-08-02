@@ -1,0 +1,26 @@
+_help_message() {
+    printf "\
+Usage:
+
+	$0 LDAP_USERNAME
+
+"
+}
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo -e "Generates a weekly (from time of running) update report for stable-proposed.\n"
+    _help_message
+    exit 0
+fi
+
+if [ -z "$1" ]; then
+   echo -e "[!!!] Please specify a LDAP user!\n"
+   _help_message
+   exit 1
+fi
+
+ssh $1@repo.aosc.io "cd /mirror/debs/pool/stable-proposed; find . -name '*.deb'" > list-stable-proposed
+
+for i in `cat list-stable-proposed`; do
+    printf -- "- [ ] $(echo $i | cut -f2 -d'/')($(echo $i | cut -f4 -d'/' | cut -f3 -d'_' | cut -f1 -d'.')): $(echo $i | cut -f4 -d'/' | cut -f1 -d'_') $(echo $i | cut -f4 -d'/' | cut -f2 -d'_')\n"
+done | sort
