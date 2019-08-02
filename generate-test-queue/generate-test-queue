@@ -22,5 +22,5 @@ fi
 ssh $1@repo.aosc.io "cd /mirror/debs/pool/stable-proposed; find . -name '*.deb'" > list-stable-proposed
 
 for i in `cat list-stable-proposed`; do
-    printf -- "- [ ] $(echo $i | cut -f2 -d'/')($(echo $i | cut -f4 -d'/' | cut -f3 -d'_' | cut -f1 -d'.')): $(echo $i | cut -f4 -d'/' | cut -f1 -d'_') $(echo $i | cut -f4 -d'/' | cut -f2 -d'_')\n"
+    printf -- "- [ ] $(echo $i | cut -f2 -d'/')($(echo $i | cut -f4 -d'/' | cut -f3 -d'_' | cut -f1 -d'.')): $(echo $i | cut -f4 -d'/' | cut -f1 -d'_') $(echo $i | cut -f4 -d'/' | cut -f2 -d'_' | sed -e 's|-0$||g')\n"
 done | sort
