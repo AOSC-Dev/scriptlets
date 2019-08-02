@@ -21,6 +21,4 @@ fi
 
 ssh $1@repo.aosc.io "cd /mirror/debs/pool/stable-proposed; find . -name '*.deb' -ctime -7" > list-stable-proposed
 
-for i in `cat list-stable-proposed`; do
-    printf -- "- [ ] $(echo $i | cut -f2 -d'/')($(echo $i | cut -f4 -d'/' | cut -f3 -d'_' | cut -f1 -d'.')): $(echo $i | cut -f4 -d'/' | cut -f1 -d'_') $(echo $i | cut -f4 -d'/' | cut -f2 -d'_' | sed -e 's|-0$||g')\n"
-done | sort
+perl -ne 'my $pattern = qr/\/(.*?)\/.*?\/(.*?)_(.*?)(?>-0)?_(.*?)\.deb/mp;my @matches = <STDIN> =~ /$pattern/;print "- [ ] @matches[0](@matches[3]): @matches[1] @matches[2]\n";' < list-stable-proposed | head -n-1 | sort
