@@ -8,7 +8,7 @@ Usage:
 }
 
 if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-    echo -e "Generates a weekly (from time of running) update report for stable-proposed.\n"
+    echo -e "Generates a weekly update report for stable-proposed.\n"
     _help_message
     exit 0
 fi
@@ -19,6 +19,6 @@ if [ -z "$1" ]; then
    exit 1
 fi
 
-ssh $1@repo.aosc.io "cd /mirror/debs/pool/stable-proposed; find . -name '*.deb' -ctime -7" > list-stable-proposed
+ssh $1@repo.aosc.io "cd /mirror/debs/pool/stable-proposed; find . -name '*.deb'" > list-stable-proposed
 
 perl -ne 'my $pattern = qr/\/(.*?)\/.*?\/(.*?)_(.*?)(?>-0)?_(.*?)\.deb/mp;my @matches = <STDIN> =~ /$pattern/;print "- [ ] @matches[0](@matches[3]): @matches[1] @matches[2]\n";' < list-stable-proposed | head -n-1 | sort
