@@ -1,5 +1,5 @@
-commit-o-matc
--------------
+commit-o-matic
+--------------
 
 A simple script that commit and add new version message for you.
 
