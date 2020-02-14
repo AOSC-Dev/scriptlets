@@ -7,7 +7,8 @@ Useage:
 
 	- PACKAGE_GROUPS: Path to the list of packages. (Example: TREE/groups/plasma)
 
-"}
+"
+}
 
 if [[ "$1" == "--help" || "$1" == "-h" ]]; then
 	_help_message
@@ -25,4 +26,3 @@ for i in $(cat $1); do
     git add --all $i
     git commit -m "${i##*/}: update to $(grep "VER=" $i/spec | cut -d "=" -f2)"
 done
-
