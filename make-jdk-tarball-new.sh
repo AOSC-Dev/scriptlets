@@ -1,13 +1,14 @@
 #!/bin/bash
-JDK_VER='8u222-ga'
-ICEDTEA_WEB='1.8'
+REPO='jdk'
+JDK_VER='8u232-ga'
+ICEDTEA_WEB='1.8.3'
 
 function download_jdk_src() {
-  wget http://hg.openjdk.java.net/jdk8u/jdk8u/archive/jdk${JDK_VER}.tar.gz \
+  wget http://hg.openjdk.java.net/jdk8u/jdk8u/archive/${REPO}${JDK_VER}.tar.gz \
     -O jdk8u-jdk${JDK_VER}.tar.gz
 
   for i in corba hotspot jdk jaxws jaxp langtools nashorn; do
-    wget http://hg.openjdk.java.net/jdk8u/jdk8u/${i}/archive/jdk${JDK_VER}.tar.gz \
+    wget http://hg.openjdk.java.net/jdk8u/jdk8u/${i}/archive/${REPO}${JDK_VER}.tar.gz \
       -O ${i}-jdk${JDK_VER}.tar.gz
   done
 
@@ -37,33 +38,25 @@ mkdir binary; cd binary
 
 # disable automated extraction for now
 if ! which phantomjs-no > /dev/null 2>&1; then
-  LINKS=("https://cdn.azul.com/zulu-embedded/bin/zulu8.40.0.178-ca-jdk1.8.0_222-linux_aarch32hf.tar.gz"
-    "https://cdn.azul.com/zulu-embedded/bin/zulu8.40.0.178-ca-jdk1.8.0_222-linux_aarch64.tar.gz"
-  "https://cdn.azul.com/zulu/bin/zulu8.40.0.25-ca-jdk8.0.222-linux_x64.tar.gz")
+  LINKS=("https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u242-b08/OpenJDK8U-jdk_x64_linux_hotspot_8u242b08.tar.gz")
   LINKS=${LINKS[*]}
   echo "PhantomJS not found, not able to dynamically extract links. Using default links to download binaries..."
 else
   LINKS=$(guess_download_link)
 fi
 wget -c --no-cookies \
-  --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" \
   ${LINKS}
 echo "Decompressing prebuilt binaries..."
-tar xf zulu*-linux_aarch32hf.tar.gz
-mv zulu*/ armel/
-tar xf zulu*-linux_aarch64.tar.gz
-mv zulu*/ arm64/
-tar xf zulu*-linux_x64.tar.gz
-mv zulu*/ amd64/
+tar xf OpenJDK8U-jdk_x64_linux_hotspot_*.tar.gz
+mv jdk8u*/ amd64/
 rm -rf -- *.tar.gz
-
 
 cd .. || exit 2
 mv binary openjdk-${JDK_VER}/
 
-wget -c "http://icedtea.wildebeest.org/download/source/icedtea-web-$ICEDTEA_WEB.tar.gz"
+wget -c "https://github.com/AdoptOpenJDK/IcedTea-Web/archive/icedtea-web-$ICEDTEA_WEB.tar.gz"
 tar xf "icedtea-web-$ICEDTEA_WEB.tar.gz"
-mv "icedtea-web-$ICEDTEA_WEB" openjdk-${JDK_VER}/icedtea-web
+mv "IcedTea-Web-icedtea-web-$ICEDTEA_WEB" openjdk-${JDK_VER}/icedtea-web
 
 if ! which pixz > /dev/null 2>&1; then
    echo "Compressing final tarball..."
