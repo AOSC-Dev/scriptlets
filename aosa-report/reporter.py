@@ -3,6 +3,7 @@ import datetime
 import fnmatch
 import re
 import logging
+import subprocess
 from github import Github, Label
 
 REPO_NAME = 'AOSC-Dev/aosc-os-abbs'
@@ -12,6 +13,7 @@ CVE_PATTERN = r'(?:\*\*)?CVE IDs:(?:\*\*)?\s*((?:(?!\n\n).)*)'
 ARCH_PATTERN = r'(?:\*\*)?Architectural progress:(?:\*\*)?\s*((?:(?!\n\n).)*)'
 OTHER_PATTERN = r'(?:\*\*)?Other security advisory IDs:(?:\*\*)?\s*((?:(?!\n\n).)*)'
 AOSA_PATTERN = r'(AOSA-\d{4}-\d+)'
+SUPERSEDED_PATTERN = r'Superseded by (#\d+)'
 REFERENCE_REPO = 'https://packages.aosc.io/repo/amd64/stable?page=all&type=json'
 HEAD_TEMPLATE = """Hi all,
 
@@ -51,7 +53,7 @@ def get_updated_version_guess(issue):
         resp.raise_for_status()
         resp = resp.json()['rows']
         if not resp:
-            return
+            return ''
         resp = resp[0]
         version = ''
         if resp[0]:
@@ -92,8 +94,11 @@ def get_aosa_number(issue):
     for page in range(issue.get_comments().totalCount):
         for comment in issue.get_comments().get_page(page):
             result = re.search(AOSA_PATTERN, comment.body)
+            superseded = re.search(SUPERSEDED_PATTERN, comment.body)
             if result:
                 aosa = result.group(1).strip()
+            if superseded:
+                aosa = 'skip'
     return aosa
 
 
@@ -102,8 +107,9 @@ def get_issues_after(date: datetime.datetime, repo, label):
     page = 0
     while True:
         finish = False
-        page = repo.get_issues(state='closed', labels=[label]).get_page(page)
-        for issue in page:
+        logging.info('Fetching page %s...' % page)
+        pages = repo.get_issues(state='closed', labels=[label]).get_page(page)
+        for issue in pages:
             if issue.created_at >= date:
                 issues.append(issue)
                 continue
@@ -111,12 +117,25 @@ def get_issues_after(date: datetime.datetime, repo, label):
             break
         if finish:
             break
+        page += 1
     return issues
 
 
+def get_expanded_names_bash(name):
+    if re.search(pattern=r'[;\n#]', string=name):
+        return None
+    try:
+        result = subprocess.check_output(['bash', '-rc', 'echo %s' % name]).decode('utf-8')
+        return result.split()
+    except Exception:
+        return None
+
+
 def get_expanded_names(issue, packages):
+    if ':' not in issue.title:
+        return [issue.title]
     pattern = issue.title.split(': ')[0]
-    return minimatch(packages, pattern) or [pattern]
+    return minimatch(packages, pattern) or get_expanded_names_bash(pattern) or [pattern]
 
 
 def generate_head(start, end):
@@ -140,7 +159,10 @@ def main():
             aosa = 'AOSA-????-????'
             logging.warning('AOSA number not found for: %s' %
                             bulletin.html_url)
-        output += ('- %s: Update %s to %s (%s)\n' %
+        if aosa == 'skip':
+            logging.warning('AOSA skipped for: %s due to obsoletion' % bulletin.html_url)
+            continue
+        output += ('- %s: Update %s to %s (%s).\n' %
                    (aosa, name, version, bulletin_number))
     print(
         '\n\n' + generate_head(bulletins[-1].created_at, bulletins[0].created_at) + output)
