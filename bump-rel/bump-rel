@@ -3,10 +3,9 @@
 _help_message() {
 	printf "\
 Useage:
-	bump-rel PACKAGE_GROUPS [-c MESSAGE]
+	bump-rel PACKAGE_GROUPS
 	
 	- PACKAGE_GROUPS: Path to the list of packages.
-	- -c: will commit REL bump if present
 "
 }
 
@@ -46,10 +45,4 @@ for i in $(cat $1); do
 	fi
 	
 	printf "[iii] update $i's REL from $OLD_REL to $REL.\n"
-
-	# If you want to commit it.
-	if [[ "$2" == "-c" ]]; then
-		git add $i/spec
-		git commit -m "${i##*/}: bump REL due to $3"
-	fi
 done
