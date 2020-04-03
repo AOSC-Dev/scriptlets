@@ -7,6 +7,8 @@ Useage:
 
 	- PACKAGE_GROUP: Path to the list of packages to be committed.
           (Example: TREE/groups/plasma)
+	- TYPE: type of the desired operation (update or bump-rel)
+	- [MESSAGE]: if TYPE=bump-rel, you need to specify why. Input reason here.
 
 "
 }
