@@ -44,7 +44,7 @@ elif [[ $2 == "bump-rel" ]]; then
 	fi
 
 	for i in $(cat $1); do
-		git add $i/spec
+		git add --all $i
 		git commit -m "${i##*/}: $3"
 	done
 fi
