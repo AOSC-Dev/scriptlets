@@ -9,6 +9,7 @@ from github import Github, Label
 REPO_NAME = 'AOSC-Dev/aosc-os-abbs'
 TARGET_LABEL = 'security'
 AFTER_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
+TOKEN = ''
 CVE_PATTERN = r'(?:\*\*)?CVE IDs:(?:\*\*)?\s*((?:(?!\n\n).)*)'
 ARCH_PATTERN = r'(?:\*\*)?Architectural progress:(?:\*\*)?\s*((?:(?!\n\n).)*)'
 OTHER_PATTERN = r'(?:\*\*)?Other security advisory IDs:(?:\*\*)?\s*((?:(?!\n\n).)*)'
@@ -145,7 +146,7 @@ def generate_head(start, end):
 def main():
     logging.info('Fetching issues from GitHub...')
     gh = Github(base_url="https://api.github.com",
-                login_or_token='')
+                login_or_token=TOKEN)
     repo = gh.get_repo(REPO_NAME)
     label = repo.get_label(TARGET_LABEL)
     bulletins = get_issues_after(AFTER_DATE, repo, label)
