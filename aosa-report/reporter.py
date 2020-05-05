@@ -4,17 +4,18 @@ import fnmatch
 import re
 import logging
 import subprocess
+import os
 from github import Github, Label
 
 REPO_NAME = 'AOSC-Dev/aosc-os-abbs'
 TARGET_LABEL = 'security'
-AFTER_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
-TOKEN = ''
+AFTER_DATE = datetime.datetime(2019, 11, 6, 0, 0, 0)
+TOKEN = os.getenv('TOKEN')
 CVE_PATTERN = r'(?:\*\*)?CVE IDs:(?:\*\*)?\s*((?:(?!\n\n).)*)'
 ARCH_PATTERN = r'(?:\*\*)?Architectural progress:(?:\*\*)?\s*((?:(?!\n\n).)*)'
 OTHER_PATTERN = r'(?:\*\*)?Other security advisory IDs:(?:\*\*)?\s*((?:(?!\n\n).)*)'
 AOSA_PATTERN = r'(AOSA-\d{4}-\d+)'
-SUPERSEDED_PATTERN = r'Superseded by (#\d+)'
+SUPERSEDED_PATTERN = r'[Ss]uperseded by (#\d+)'
 REFERENCE_REPO = 'https://packages.aosc.io/repo/amd64/stable?page=all&type=json'
 HEAD_TEMPLATE = """Hi all,
 
@@ -105,20 +106,12 @@ def get_aosa_number(issue):
 
 def get_issues_after(date: datetime.datetime, repo, label):
     issues = []
-    page = 0
-    while True:
-        finish = False
-        logging.info('Fetching page %s...' % page)
-        pages = repo.get_issues(state='closed', labels=[label]).get_page(page)
-        for issue in pages:
-            if issue.created_at >= date:
-                issues.append(issue)
-                continue
-            finish = True
-            break
-        if finish:
-            break
-        page += 1
+    count = 0
+    for issue in repo.get_issues(state='closed', labels=[label], since=date):
+        issues.append(issue)
+        print('\rEnumerating issues... %s' % count, end='', flush=True)
+        count += 1
+    print('... done.')
     return issues
 
 
