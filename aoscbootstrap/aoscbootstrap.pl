@@ -276,7 +276,7 @@ my $target = '/root/test';
 my $mirror = 'http://localhost/debs';
 my @arch = ('amd64', 'all');
 my @stub_packages = ('apt', 'gcc-runtime', 'tar', 'xz', 'gnupg', 'grep', 'ca-certs', 'iptables', 'shadow', 'keyutils');
-my @base_packages = ('admin-base', 'util-base', 'systemd-base', 'network-base', 'web-base', 'core-base', 'editor-base', 'python-base', 'bash-startup');
+my @base_packages = (@stub_packages, 'bash-completion', 'bash-startup', 'iana-etc', 'libidn', 'tzdata');
 my %args = ('target' => $target, 'mirror' => $mirror, 'branch' => 'stable', 'arch' => \@arch);
 
 make_path("$target/aoscbootstrap") or die "Failed to mkdir $target/aoscbootstrap";
@@ -312,5 +312,7 @@ chroot_do("$target", "/bin/true");
 print STDERR "Installing packages for stage 2...\n";
 my $script = generate_dpkg_install_script(@all_deps);
 chroot_script_do($target, $script);
+print STDERR "Installing skeleton scripts for root user...\n";
+chroot_do("$target", '/bin/cp', '-rT', '/etc/skel', '/root');
 print STDERR "================================\n";
 print STDERR "Base system setup complete.\n";
