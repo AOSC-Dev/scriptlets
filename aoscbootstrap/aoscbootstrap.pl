@@ -1,3 +1,4 @@
+#!/bin/perl
 package aoscbootstrap;
 use v5.19;
 use strict;
@@ -11,6 +12,7 @@ use LWP::Simple;
 use version;
 use feature qw(switch);
 use Data::Dumper;
+use Getopt::Long;
 
 sub version_compare_mini($$) {
     my ($a, $b) = @_;
@@ -272,12 +274,20 @@ sub generate_dpkg_install_script(@) {
 }
 
 # configurations
-my $target = '/root/test';
-my $mirror = 'http://localhost/debs';
-my @arch = ('amd64', 'all');
+my $default_mirror = 'https://repo.aosc.io/debs';
+my $default_branch = 'stable';
+my @arch = ('all');
 my @stub_packages = ('apt', 'gcc-runtime', 'tar', 'xz', 'gnupg', 'grep', 'ca-certs', 'iptables', 'shadow', 'keyutils');
 my @base_packages = (@stub_packages, 'bash-completion', 'bash-startup', 'iana-etc', 'libidn', 'tzdata');
-my %args = ('target' => $target, 'mirror' => $mirror, 'branch' => 'stable', 'arch' => \@arch);
+
+GetOptions("arch=s" => \@arch, "include=s" => \@base_packages);
+my $arch_length = scalar @arch;
+die "ERROR: You must specify an architecture using --arch" if $arch_length < 2;
+my $branch = shift @ARGV || $default_branch;
+my $target = shift @ARGV || die "ERROR: No target specified!\n";
+my $mirror = shift @ARGV || $default_mirror;
+print STDERR "Bootstrapping using mirror: $mirror with branch: $branch on $target\n";
+my %args = ('target' => $target, 'mirror' => $mirror, 'branch' => $branch, 'arch' => \@arch);
 
 make_path("$target/aoscbootstrap") or die "Failed to mkdir $target/aoscbootstrap";
 print STDERR "Downloading manifests...\n";
