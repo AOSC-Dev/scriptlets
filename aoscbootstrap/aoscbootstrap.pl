@@ -106,7 +106,8 @@ sub resolve_packages($) {
     my @resolve_packages;
     foreach my $p (@packages) {
         my %r = find_package_complete( $p, @manifests );
-        push @resolve_packages, \%r if %r;
+        die "Package $p not found" unless %r;
+        push @resolve_packages, \%r;
         my @r_deps = find_package_depends(%r);
 
         # printf ("$r{name} -> %s", Dumper(\@r_deps));
@@ -306,9 +307,9 @@ sub generate_dpkg_install_script(@) {
 }
 
 sub add_packages_from_file($$) {
-    my $filename = shift;
+    my $filename     = shift;
     my $packages_ref = shift;
-    open(my $fh, '<', $filename) or die "Could not open $filename";
+    open( my $fh, '<', $filename ) or die "Could not open $filename";
     while (<$fh>) {
         my $name = $_ =~ s/^\s+|\s+$//gr;
         push @{$packages_ref}, $name;
@@ -320,6 +321,7 @@ sub add_packages_from_file($$) {
 # configurations
 my $default_mirror = 'https://repo.aosc.io/debs';
 my $default_branch = 'stable';
+my $download_only  = '';
 my @arch           = ('all');
 my @recipe_files   = ();
 my @stub_packages  = (
@@ -332,7 +334,12 @@ my @base_packages = (
     'tzdata'
 );
 
-GetOptions( "arch=s" => \@arch, "include=s" => \@base_packages, "include-file=s" => \@recipe_files );
+GetOptions(
+    "arch=s"         => \@arch,
+    "include=s"      => \@base_packages,
+    "include-file=s" => \@recipe_files,
+    'download-only'  => \$download_only
+);
 my $arch_length = scalar @arch;
 die "ERROR: You must specify an architecture using --arch" if $arch_length < 2;
 my $branch = shift @ARGV || $default_branch;
@@ -349,7 +356,7 @@ my %args = (
 
 if (@recipe_files) {
     foreach my $recipe (@recipe_files) {
-        add_packages_from_file($recipe, \@base_packages);
+        add_packages_from_file( $recipe, \@base_packages );
     }
 }
 
@@ -364,6 +371,8 @@ my %args_2   = ( packages => \@base_packages, manifests => \@manifests );
 my @all_deps = resolve_packages( \%args_2 );
 print STDERR "Downloading packages...\n";
 fetch_packages( $mirror, $target, @all_deps );
+(exit 0 && print STDERR "Packages downloaded successfully\n") if $download_only;
+
 print STDERR "Dowloading extra files...\n";
 `curl -q 'https://repo.aosc.io/aosc-repacks/etc-bootstrap.tar.xz' | tar xJf - -C "$target"`;
 $? == 0 or die "Failed to download extra files\n";
