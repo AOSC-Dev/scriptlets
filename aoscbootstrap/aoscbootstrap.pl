@@ -305,10 +305,23 @@ sub generate_dpkg_install_script(@) {
     return $script;
 }
 
+sub add_packages_from_file($$) {
+    my $filename = shift;
+    my $packages_ref = shift;
+    open(my $fh, '<', $filename) or die "Could not open $filename";
+    while (<$fh>) {
+        my $name = $_ =~ s/^\s+|\s+$//gr;
+        push @{$packages_ref}, $name;
+    }
+    close($fh);
+    print STDERR "Added additional packages from $filename\n";
+}
+
 # configurations
 my $default_mirror = 'https://repo.aosc.io/debs';
 my $default_branch = 'stable';
 my @arch           = ('all');
+my @recipe_files   = ();
 my @stub_packages  = (
     'apt',    'gcc-runtime', 'tar',      'xz',
     'gnupg',  'grep',        'ca-certs', 'iptables',
@@ -319,7 +332,7 @@ my @base_packages = (
     'tzdata'
 );
 
-GetOptions( "arch=s" => \@arch, "include=s" => \@base_packages );
+GetOptions( "arch=s" => \@arch, "include=s" => \@base_packages, "include-file=s" => \@recipe_files );
 my $arch_length = scalar @arch;
 die "ERROR: You must specify an architecture using --arch" if $arch_length < 2;
 my $branch = shift @ARGV || $default_branch;
@@ -333,6 +346,12 @@ my %args = (
     'branch' => $branch,
     'arch'   => \@arch
 );
+
+if (@recipe_files) {
+    foreach my $recipe (@recipe_files) {
+        add_packages_from_file($recipe, \@base_packages);
+    }
+}
 
 make_path("$target/aoscbootstrap")
   or die "Failed to mkdir $target/aoscbootstrap";
