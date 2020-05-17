@@ -389,9 +389,6 @@ bootstrap_apt( \%args );
 bootstrap_dev_nodes($target);
 print STDERR "Stage 1 finished.\n";
 
-# HACK: correct path problems
-# `cp -ar "$target/bin/"* "$target/usr/bin/" && rm -rf "$target/bin/" && ln -s usr/bin "$target/bin"`;
-# `cp -ar "$target/usr/lib64/"* "$target/usr/lib/" && rm -rf "$target/usr/lib64/" && ln -s lib "$target/usr/lib64"`;
 # stage 2
 print STDERR "================================\n";
 print STDERR "Setting default passwords...\n";
