@@ -64,7 +64,12 @@ sub find_package($$) {
 qr/Package:\h+$package\nVersion:\s+(?<version>.*?)\n.*?Filename:\h+(?<filename>.*?)\n.*?SHA256:\h+(?<sha>.*?)\n((?:(?!\n\n).)*Depends:\h*(?<deps>.*?)\n)?/msp;
     my %candidate = undef;
     while ( $str =~ /$regex/g ) {
-        my $result = version_compare_mini( $+{version}, $candidate{version} );
+        my $result;
+        if ($aoscbootstrap::extractor eq 'dpkg') {
+            $result = version_compare( $+{version}, $candidate{version} );
+        } else {
+            $result = version_compare_mini( $+{version}, $candidate{version} );
+        }
         %candidate = %+ unless ( %candidate and $result and $result <= 0 );
     }
     return undef unless %candidate{filename};
@@ -359,6 +364,13 @@ if (@recipe_files) {
         add_packages_from_file( $recipe, \@base_packages );
     }
 }
+
+our $version_compare = 'mini';
+eval {
+    require Dpkg::Version;
+    $version_compare = 'dpkg';
+    1;  # flag for successful execution of the eval block
+} or print STDERR "WARNING: Dpkg Perl module not available, alternative version comparison is used instead.\n";
 
 make_path("$target/aoscbootstrap")
   or die "Failed to mkdir $target/aoscbootstrap";
