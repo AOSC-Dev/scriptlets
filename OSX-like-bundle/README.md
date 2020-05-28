@@ -1,8 +1,10 @@
 Cross-platform .app bundle
 ====
-<small>by Arthur Wang</small>
 
-At first it was a joke, or just a crazy idea.
+**DO NOT WORK ON THIS THING**. GnuStep has a [multiarch bundle format](https://fedoraproject.org/wiki/PackagingDrafts/GNUstep#.22Fat.22_unflattened_layout)
+that already does exactly what I want to do. It's been there for a long time.
+
+I might be drunk when I wrote this.
 
 The .app directory will has a layout almost the same to the one OS X .app
 bundle has, but with a ${OS}/ (OS\_ARCH) folder instead of the MacOS/ 
@@ -10,7 +12,7 @@ folder. Of course it can support a fat bundle with MacOS/ and many other Arches.
 
 Dependencies
 ---
-This Shell Depends on:
+This script Depends on:
  - libplist-utils (plistutil)
  - xml2
  - - libxml/libxml2
