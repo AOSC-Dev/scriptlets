@@ -52,21 +52,24 @@ sub normalize_name($) {
 }
 
 sub infer_deps($) {
-    my $deps       = shift;
-    my @deps       = @$deps;
-    my @rt_deps    = ();
-    my @build_deps = ();
+    my $deps         = shift;
+    my @deps         = @$deps;
+    my @rt_deps      = ();
+    my @build_deps   = ();
+    my @ignored_deps = ( 'perl', 'extutils-makemaker' );
 
     foreach my $dep (@deps) {
         my %d = %$dep;
-        continue if $d{'relationship'} ne 'requires';
+        next if $d{'relationship'} ne 'requires';
         my $dist_name = query_on_cpan( $d{'module'}, 1 );
         my $name      = normalize_name($dist_name);
+        next if ( $name ~~ @ignored_deps );
         if ( $d{'phase'} eq 'runtime' ) {
-            push @rt_deps, "perl-$name";
+            push @rt_deps, "perl-$name" unless ( "perl-$name" ~~ @rt_deps );
         }
         else {
-            push @build_deps, "perl-$name";
+            push @build_deps, "perl-$name"
+              unless ( "perl-$name" ~~ @build_deps );
         }
     }
 
@@ -82,13 +85,13 @@ sub ab3_writer($) {
     my $ab_srcurl       = $data{'tarball'} =~ s/$data{'version'}/\$VER/gr;
     my $deps            = infer_deps( $data{'depends'} );
     my %deps            = %$deps;
-    my $rt_deps         = join( ' ', @{$deps{'deps'}} );
-    my $build_deps      = join( ' ', @{$deps{'build_deps'}} );
+    my $rt_deps         = join( ' ', @{ $deps{'deps'} } );
+    my $build_deps      = join( ' ', @{ $deps{'build_deps'} } );
     print STDERR "-- Writing abbs build files: $ab_name\n";
     make_path($ab_name) or die "Could not create directory $ab_name";
     die "Could not write to $ab_name/spec" unless open( FH, ">$ab_name/spec" );
     print FH
-"VER=$data{'version'}\nSRCTBL=\"$ab_srcurl\"\nCHKSUM='sha256::$data{'sha256sum'}\n";
+"VER=$data{'version'}\nSRCTBL=\"$ab_srcurl\"\nCHKSUM='sha256::$data{'sha256sum'}'\n";
     close(FH);
     make_path("$ab_name/autobuild")
       or die "Could not create directory $ab_name/autobuild";
@@ -98,6 +101,7 @@ sub ab3_writer($) {
 "PKGNAME=$ab_name\nPKGSEC=perl\nPKGDES='$data{'description'}'\nPKGDEP=\"perl $rt_deps\"\nBUILDDEP=\"$build_deps\"\n";
     close(FH);
     print STDERR "-- Writing abbs build files: $ab_name - OK\n";
+    return \%deps;
 }
 
 foreach my $module (@ARGV) {
