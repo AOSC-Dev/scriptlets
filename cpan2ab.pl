@@ -54,23 +54,30 @@ sub normalize_name($) {
 sub infer_deps($) {
     my $deps         = shift;
     my @deps         = @$deps;
+    my @modules      = ();
     my @rt_deps      = ();
     my @build_deps   = ();
     my @core_imports = ();
-    foreach my $inc(@INC) {
+    my @ignore_deps  = ('perl', 'libwww-perl');
+    foreach my $inc (@INC) {
         push @core_imports, "\'$inc\'" if $inc =~ m/core_perl$/;
     }
-    my $imports = join(", ", @core_imports);
+    my $imports = join( ", ", @core_imports );
 
     foreach my $dep (@deps) {
         my %d = %$dep;
         next if $d{'relationship'} ne 'requires';
-        next if system('perl', '-e', "\@INC=($imports);require $d{'module'};") == 0;
+        next
+          if system( 'perl', '-e', "\@INC=($imports);require $d{'module'};" )
+          == 0;
         my $dist_name = query_on_cpan( $d{'module'}, 1 );
-        next if $dist_name eq 'perl';
-        my $name      = normalize_name($dist_name);
+        next if ($dist_name ~~ @ignore_deps);
+        my $name     = normalize_name($dist_name);
+        my %dep_info = ( 'name' => $d{'module'}, 'dist' => $name );
+
         if ( $d{'phase'} eq 'runtime' ) {
             push @rt_deps, "perl-$name" unless ( "perl-$name" ~~ @rt_deps );
+            push @modules, \%dep_info unless ( \%dep_info ~~ @modules );
         }
         else {
             push @build_deps, "perl-$name"
@@ -78,7 +85,11 @@ sub infer_deps($) {
         }
     }
 
-    my %args = ( 'deps' => \@rt_deps, 'build_deps' => \@build_deps );
+    my %args = (
+        'deps'       => \@rt_deps,
+        'build_deps' => \@build_deps,
+        'modules', \@modules
+    );
     return \%args;
 }
 
@@ -102,14 +113,40 @@ sub ab3_writer($) {
       or die "Could not create directory $ab_name/autobuild";
     die "Could not write to $ab_name/spec"
       unless open( FH, ">$ab_name/autobuild/defines" );
+    my $description = "'$data{'description'}'";
+
+    if ( $data{'description'} =~ m/'/ ) {
+        $description = "\"$data{'description'}\"";
+    }
     print FH
-"PKGNAME=$ab_name\nPKGSEC=perl\nPKGDES='$data{'description'}'\nPKGDEP=\"perl $rt_deps\"\nBUILDDEP=\"$build_deps\"\n";
+"PKGNAME=$ab_name\nPKGSEC=perl\nPKGDES=$description\nPKGDEP=\"perl $rt_deps\"\n";
     close(FH);
     print STDERR "-- Writing abbs build files: $ab_name - OK\n";
     return \%deps;
 }
 
-foreach my $module (@ARGV) {
+my @mods      = @ARGV;
+my $full_auto = 1;
+my $count = 0;
+open( my $fh, '>>/tmp/list.lst' ) or die "Could not open /tmp/list.lst";
+foreach my $module (@mods) {
+    my $length = scalar @mods;
+    $count++;
+    print STDERR "-- [$count/$length] Processing $module\n";
     my $data = query_on_cpan( $module, 0 );
-    ab3_writer($data);
+    my $deps = ab3_writer($data);
+    next unless $full_auto;
+    my %deps = %$deps;
+    my @more_deps = @{ $deps{'modules'} };
+    my $module_name = normalize_name($module);
+    print $fh "perl-$module_name\n";
+    foreach my $dep (@more_deps) {
+        my %dep_info = %$dep;
+        next if -d "perl-$dep_info{'dist'}";
+        print "!! Missing: $dep_info{'name'}\n";
+        push @mods, $dep_info{'name'} unless ($dep_info{'name'} ~~ @mods);
+    }
 }
+close $fh;
+print STDERR "================================================================\n";
+print STDERR "Done. Total modules: $count, run `commit-o-matic /tmp/list.lst update` to auto commit.\n"
