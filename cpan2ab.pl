@@ -56,14 +56,19 @@ sub infer_deps($) {
     my @deps         = @$deps;
     my @rt_deps      = ();
     my @build_deps   = ();
-    my @ignored_deps = ( 'perl', 'extutils-makemaker' );
+    my @core_imports = ();
+    foreach my $inc(@INC) {
+        push @core_imports, "\'$inc\'" if $inc =~ m/core_perl$/;
+    }
+    my $imports = join(", ", @core_imports);
 
     foreach my $dep (@deps) {
         my %d = %$dep;
         next if $d{'relationship'} ne 'requires';
+        next if system('perl', '-e', "\@INC=($imports);require $d{'module'};") == 0;
         my $dist_name = query_on_cpan( $d{'module'}, 1 );
+        next if $dist_name eq 'perl';
         my $name      = normalize_name($dist_name);
-        next if ( $name ~~ @ignored_deps );
         if ( $d{'phase'} eq 'runtime' ) {
             push @rt_deps, "perl-$name" unless ( "perl-$name" ~~ @rt_deps );
         }
