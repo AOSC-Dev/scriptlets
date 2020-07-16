@@ -8,6 +8,8 @@ import logging
 import semver
 import subprocess
 
+from typing import List, Dict
+
 # $1: package name $2: version string
 matching_patt = r'(.*?)-(\d.*?).zh_CN'
 po_dl_url = 'https://translationproject.org/PO-files/{lang}/{fn}'
@@ -15,7 +17,7 @@ po_name = '{pkg}-{ver}.{lang}.po'
 domain_url = 'https://translationproject.org/domain/index.html'
 
 
-def collect_local_info(dirname):
+def collect_local_info(dirname: str):
     files = []
     for f in os.listdir(dirname):
         if not os.path.isfile(os.path.join(dirname, f)):
@@ -32,11 +34,11 @@ def collect_local_info(dirname):
     return files
 
 
-def collect_remote_info():
+def collect_remote_info() -> Dict[str, str]:
     parser = html5lib.HTMLParser(tree=html5lib.getTreeBuilder("dom"))
     domain_data = requests.get(domain_url)
-    domain_data = parser.parse(domain_data.text)
-    nodes = domain_data.getElementsByTagName('tbody')[0]
+    parsed = parser.parse(domain_data.text)
+    nodes = parsed.getElementsByTagName('tbody')[0]
     nodes = nodes.childNodes
     head = True
     remote_data = {}
@@ -57,8 +59,12 @@ def download_po(pkg, ver, lang, folder='.'):
     po_file = po_name.format(pkg=pkg, ver=ver, lang=lang)
     po_url = po_dl_url.format(lang=lang, fn=po_file)
     logging.warning('Downloading %s...' % po_file)
+    resp = requests.get(po_url)
+    if resp.status_code not in range(200, 300):
+        logging.error('Download error: %s' % resp.status_code)
+        return
     with open(os.path.join(folder, po_file), 'wt') as f:
-        f.write(requests.get(po_url).text)
+        f.write(resp.text)
 
 
 def main():
@@ -73,10 +79,12 @@ def main():
         remote_ver = remote.get(f[0])
         if not remote_ver:
             logging.error('Local file %s not found in remote data' % f[0])
+            continue
         if f[1] == remote_ver:
             continue
         try:
             if semver.compare(f[1], remote_ver) >= 0:
+                logging.info('Local file %s is up to date' % f[0])
                 continue
         except ValueError:
             pass
