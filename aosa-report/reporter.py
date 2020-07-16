@@ -5,6 +5,7 @@ import re
 import logging
 import subprocess
 import os
+import sys
 from github import Github, Label
 
 REPO_NAME = 'AOSC-Dev/aosc-os-abbs'
@@ -109,9 +110,9 @@ def get_issues_after(date: datetime.datetime, repo, label):
     count = 0
     for issue in repo.get_issues(state='closed', labels=[label], since=date):
         issues.append(issue)
-        print('\rEnumerating issues... %s' % count, end='', flush=True)
+        print('\rEnumerating issues... %s' % count, end='', flush=True, file=sys.stderr)
         count += 1
-    print('... done.')
+    print('... done.', file=sys.stderr)
     return issues
 
 
