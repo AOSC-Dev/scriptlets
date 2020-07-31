@@ -56,7 +56,7 @@ if __name__ == "__main__":
         slug = guess_mirror_slug(i)
         if not slug:
             logging.warning("Unable to guess the slug for %s" % i['name'])
-        print("[[mirrors]]\nname = \"%s\"\nname-tr = \"%s\"\nurl = \"%s\"\nloc = \"%s\"\nloc-tr = \"%s\"\n\n" % (
-            i['name'], slug + '-name' if slug else '', i['url'], i['region'], slug +
+        print("[[mirrors]]\nname = \"%s\"\nname-tr = \"%s\"\nurl = \"%s\"\nloc = \"%s\"\nloc-tr = \"%s\"\n" % (
+            i['name'], slug + '-name' if slug else '', i['url'] + 'aosc-os/', i['region'], slug +
             '-loc' if slug else ''
         ))
