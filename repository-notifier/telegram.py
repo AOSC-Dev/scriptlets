@@ -10,6 +10,13 @@ import itertools
 import os
 import sys
 
+if len(sys.argv) == 1:
+    print('Usage: ')
+    print('  TELEGRAM_TOKEN=xxx:yyyyy python3 %s ZMQ_ADDRESS' % sys.argv[0])
+    print('Place Chat IDs you want to send notification')
+    print(' in notify_chat_ids.lst, one ID per line.')
+    exit()
+
 PENDING_DURATION = 30
 PENDING_MAX_SIZE = 20
 LIST_MAX_SIZE = 30
