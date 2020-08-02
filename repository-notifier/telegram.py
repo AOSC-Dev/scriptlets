@@ -21,6 +21,9 @@ bot = Bot(token=TOKEN)
 with open('chat_id.lst', 'r') as f:
     chat_ids = set([int(line) for line in f.readlines()])
 
+with open('notify_chat_id.lst', 'r') as f:
+    notify_chat_ids = set([int(line) for line in f.readlines()])
+
 dp = Dispatcher(bot)
 
 @dp.message_handler(commands=['start'])
@@ -101,7 +104,7 @@ async def co():
         except asyncio.TimeoutError:
             if len(pending_list) > 0:
                 print('send', len(pending_list))
-                for chat_id in [-1001433534622]: #chat_ids:
+                for chat_id in notify_chat_ids:
                    await bot.send_message(chat_id, classify(pending_list),
                                           parse_mode='HTML',
                                           disable_web_page_preview=True)
