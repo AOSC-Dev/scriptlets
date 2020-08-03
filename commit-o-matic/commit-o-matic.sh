@@ -1,13 +1,13 @@
 #!/bin/bash
 _help_message() {
 	printf "\
-Useage:
+Usage:
 
 	commit-o-matic PACKAGE_GROUP TYPE [MESSAGE]
 
 	- PACKAGE_GROUP: Path to the list of packages to be committed.
           (Example: TREE/groups/plasma)
-	- TYPE: type of the desired operation (update or bump-rel)
+	- TYPE: type of the desired operation (new, update, or bump-rel)
 	- [MESSAGE]: if TYPE=bump-rel, you need to specify why. Input reason here.
 
 "
@@ -35,6 +35,11 @@ if [[ $2 == "update" ]]; then
 	for i in $(cat $1); do
     		git add --all $i
     		git commit -m "${i##*/}: update to $(grep "VER=" $i/spec | cut -d "=" -f2)"
+	done
+elif [[ $2 == "new" ]]; then
+	for i in $(cat $1); do
+		git add --all $i
+		git commit -m "${i##*/}: new, $(grep "VER=" $i/spec | cut -d "=" -f2)"
 	done
 elif [[ $2 == "bump-rel" ]]; then
 	if [ -z "$3" ]; then
