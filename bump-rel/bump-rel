@@ -20,12 +20,6 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
-if [ -z "$2" ]; then
-	printf "[!!!] Please specify a package group.\n"
-	_help_message
-	exit 1
-fi
-
 # Main stuff
 for i in $(cat $1); do
 	if ! [[ -e $i ]]; then
