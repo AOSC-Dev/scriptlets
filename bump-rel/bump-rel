@@ -4,7 +4,7 @@ _help_message() {
 	printf "\
 Useage:
 	bump-rel PACKAGE_GROUPS
-	
+
 	- PACKAGE_GROUPS: Path to the list of packages.
 "
 }
@@ -32,7 +32,7 @@ for i in $(cat $1); do
 		echo [!!!] Package $i does not exists!
 		continue
 	fi
-	
+
 	OLD_REL=$(grep "^REL" $i/spec | cut -d "=" -f2)
 
 	if ! [[ "$OLD_REL" =~ ^[0-9]+$ ]]; then
@@ -43,6 +43,6 @@ for i in $(cat $1); do
 		REL=$((OLD_REL+1))
 		sed -i "/REL/ s/$OLD_REL/$REL/" $i/spec
 	fi
-	
+
 	printf "[iii] update $i's REL from $OLD_REL to $REL.\n"
 done
