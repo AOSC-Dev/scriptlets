@@ -31,3 +31,4 @@ if [ -z "$2" ]; then
 fi
 
 rsync --ignore-existing -rlOvhze ssh --progress debs/* ${1}@repo.aosc.io:/mirror/debs/pool/${2}/${3:-main}
+rm -rv debs/*
