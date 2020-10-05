@@ -3,7 +3,7 @@ pushpkg
 
 A simple wrapper script for the standard AOSC OS package upload procedure.
 
-You should run this script inside the `OUTPUT` directory, which contains the `debs` directory.
+You should run this script inside a directory which contains the `debs` directory.
 
 ```
 Usage:
