@@ -31,4 +31,4 @@ if [ -z "$2" ]; then
 fi
 
 ssh ${1}@repo.aosc.io "mkdir -p /mirror/debs/pool/${2}/${3:-main}"
-rsync --ignore-existing -rlOvhze ssh --progress debs/* ${1}@repo.aosc.io:/mirror/debs/pool/${2}/${3:-main}
+rsync -rlOvhze ssh --progress debs/* ${1}@repo.aosc.io:/mirror/debs/pool/${2}/${3:-main}
