@@ -13,6 +13,13 @@ Usage:
 "
 }
 
+if [[ -r $PWD/debs ]]; then
+   printf ''
+else
+   echo "[!!!] PWD must contain the 'debs' directory!"
+   exit 1
+fi
+
 if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     _help_message
     exit 0
