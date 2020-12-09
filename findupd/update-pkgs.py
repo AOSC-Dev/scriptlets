@@ -50,7 +50,7 @@ def get_pkg_tuple(jsonsrc):
         pkg_name = ''
         for repo in jsonsrc[pkg]:
             if 'aosc' in repo['repo']:
-                pkg_name = repo['name']
+                pkg_name = repo['binname']
             if 'newest' in repo['status']:
                 newest_ver = repo['version']
         result.append((pkg_name, newest_ver))
@@ -94,7 +94,7 @@ def find_newest_pkgs(jsonfile=None, jsonurl=None, dumpfile=None):
             return result
         else:
             last_pkg = sorted(jsonsrc.keys())[-1]
-            jsonsrc = get_json_from_url(base_url + last_pkg + filter_url)
+            jsonsrc = get_json_from_url(base_url + last_pkg + '/' + filter_url)
 
 
 def find_spec(pkgname):
