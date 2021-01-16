@@ -30,5 +30,6 @@ if [ -z "$2" ]; then
    exit 1
 fi
 
+rm -fv debs/*
 ssh ${1}@repo.aosc.io "mkdir -p /mirror/debs/pool/${2}/${3:-main}"
 rsync -rlOvhze ssh --progress debs/* ${1}@repo.aosc.io:/mirror/debs/pool/${2}/${3:-main}
