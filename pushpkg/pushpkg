@@ -56,14 +56,8 @@ Options:
 "
 }
 
-if [ -z $USERNAME ]; then
-    echo -e "[!!!] Please specify a LDAP user!\n"
-    _help_message
-    exit 1
-fi
-
-if [ -z $BRANCH ]; then
-    echo -e "[!!!] Please specify a branch!\n"
+if [[ -z $USERNAME || -z $BRANCH ]]; then
+    echo -e "[!!!] Please specify a LDAP user and specify a branch!\n"
     _help_message
     exit 1
 fi
@@ -76,7 +70,7 @@ ssh ${ARGS_SSH} ${USERNAME}@repo.aosc.io "mkdir -p /mirror/debs/pool/${BRANCH}/$
 
 for i in debs/*/*; do
     if [ $i = "*_noarch.deb" ]; then
-        rsync ${ARGS_RSYNC} -ignore-existing -rlOvhze ssh --progress $i ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
+        rsync ${ARGS_RSYNC} --ignore-existing -rlOvhze ssh --progress $i ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
     else
         rsync ${ARGS_RSYNC} -rlOvhze ssh --progress $i ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
     fi
