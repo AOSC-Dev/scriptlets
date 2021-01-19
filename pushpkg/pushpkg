@@ -1,35 +1,81 @@
-#!/bin/bash
+#!/bin/bash 
+
+ARGS_SSH=""
+ARGS_RSYNC=""
+AFTER_CLEAN_DIRECTORY=0
+USERNAME=""
+BRANCH=""
+COMPOMENT=""
+
+while getopts "hvdb:u:c:" arg ; do
+    case $arg in
+        h)
+            _help_message
+            exit 0
+            ;;
+        v)
+            ARGS_SSH+=" -vvv"
+            ARGS_RSYNC+=" -v"
+            ;;
+        d)
+            AFTER_CLEAN_DIRECTORY=1
+            ;;
+        b)
+            BRANCH=${OPTARG}
+            ;;
+        u)
+            USERNAME=${OPTARG}
+            ;; 
+        c)
+            COMPOMENT=${OPTARG}
+            ;;
+        ?)
+            _help_message
+            exit 1
+            ;;
+    esac
+done
+
+
 _help_message() {
     printf "\
 Usage:
 
-	pushpkg LDAP_USERNAME BRANCH [COMPONENT]
+	pushpkg -u LDAP_USERNAME -b BRANCH -c [COMPONENT]
 
-	- LDAP_USERNAME: Your LDAP username.
-	- BRANCH: AOSC OS update branch (stable, stable-proposed, testing, etc.)
-	- [COMPONENT]: (Optional) Repository component (main, bsp-sunxi, etc.)
+	-u LDAP_USERNAME: Your LDAP username.
+	-b BRANCH: AOSC OS update branch (stable, stable-proposed, testing, etc.)
+
+Options:
+
+    -c: [COMPONENT]: (Optional) Repository component (main, bsp-sunxi, etc.)
                        Falls back to "main" if not specified.
+    -d: pushpkg after clean OUTPUT directory
+    -v: ssh and rsync verbose
 
 "
 }
 
-if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+if [ -z $USERNAME ]; then
+    echo -e "[!!!] Please specify a LDAP user!\n"
     _help_message
-    exit 0
+    exit 1
 fi
 
-if [ -z "$1" ]; then
-   echo -e "[!!!] Please specify a LDAP user!\n"
-   _help_message
-   exit 1
+if [ -z $BRANCH ]; then
+    echo -e "[!!!] Please specify a branch!\n"
+    _help_message
+    exit 1
 fi
 
-if [ -z "$2" ]; then
-   echo -e "[!!!] Please specify a branch!\n"
-   _help_message
-   exit 1
+if [ -z $COMPOMENT ]; then
+    COMPOMENT="main"
 fi
 
 sudo rm -fv debs/*
-ssh ${1}@repo.aosc.io "mkdir -p /mirror/debs/pool/${2}/${3:-main}"
-rsync -rlOvhze ssh --progress debs/* ${1}@repo.aosc.io:/mirror/debs/pool/${2}/${3:-main}
+ssh ${ARGS_SSH} ${USERNAME}@repo.aosc.io "mkdir -p /mirror/debs/pool/${BRANCH}/${COMPOMENT}"
+rsync ${ARGS_RSYNC} -rlOvhze ssh --progress debs/* ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
+
+if [ $AFTER_CLEAN_DIRECTORY = 1 ]; then
+     rm -rfv ./*
+fi
