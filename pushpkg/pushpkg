@@ -74,8 +74,12 @@ fi
 
 ssh ${ARGS_SSH} ${USERNAME}@repo.aosc.io "mkdir -p /mirror/debs/pool/${BRANCH}/${COMPOMENT}"
 
-for i in debs/*/; do
-    rsync ${ARGS_RSYNC} -rlOvhze ssh --progress $i ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
+for i in debs/*/*; do
+    if [ $i = "*_noarch.deb" ]; then
+        rsync ${ARGS_RSYNC} -ignore-existing -rlOvhze ssh --progress $i ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
+    else
+        rsync ${ARGS_RSYNC} -rlOvhze ssh --progress $i ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
+    fi
 done
 
 if [ $AFTER_CLEAN_DIRECTORY = 1 ]; then
