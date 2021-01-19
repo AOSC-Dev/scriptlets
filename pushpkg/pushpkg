@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash -e
 
 ARGS_SSH=""
 ARGS_RSYNC=""
@@ -72,9 +72,11 @@ if [ -z $COMPOMENT ]; then
     COMPOMENT="main"
 fi
 
-sudo rm -fv debs/*
 ssh ${ARGS_SSH} ${USERNAME}@repo.aosc.io "mkdir -p /mirror/debs/pool/${BRANCH}/${COMPOMENT}"
-rsync ${ARGS_RSYNC} -rlOvhze ssh --progress debs/* ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
+
+for i in debs/*/; do
+    rsync ${ARGS_RSYNC} -rlOvhze ssh --progress $i ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
+done
 
 if [ $AFTER_CLEAN_DIRECTORY = 1 ]; then
      rm -rfv ./*
