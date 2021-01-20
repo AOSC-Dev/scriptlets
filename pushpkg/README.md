@@ -14,7 +14,6 @@ Usage:
 	- BRANCH: AOSC OS update branch (stable, stable-proposed, testing, etc.)
 	- [COMPONENT]: (Optional) Repository component (main, bsp-sunxi, etc.)
                        Falls back to "main" if not specified.
-
 ```
 
 One-liner usage:
