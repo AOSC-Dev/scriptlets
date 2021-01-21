@@ -8,17 +8,21 @@ You should run this script inside a directory which contains a `debs` directory.
 ```
 Usage:
 
-	pushpkg LDAP_USERNAME BRANCH [COMPONENT]
+        pushpkg -u LDAP_USERNAME -b BRANCH -c [COMPONENT]
 
-	- LDAP_USERNAME: Your LDAP username.
-	- BRANCH: AOSC OS update branch (stable, stable-proposed, testing, etc.)
-	- [COMPONENT]: (Optional) Repository component (main, bsp-sunxi, etc.)
+        -u LDAP_USERNAME: Your LDAP username.
+        -b BRANCH: AOSC OS update branch (stable, stable-proposed, testing, etc.)
+
+Options:
+
+    -c [COMPONENT]: (Optional) Repository component (main, bsp-sunxi, etc.)
                        Falls back to "main" if not specified.
-
+    -d: pushpkg after clean OUTPUT directory
+    -v: ssh and rsync verbose
 ```
 
 One-liner usage:
 
 ```shell
-curl -sSL https://github.com/AOSC-Dev/scriptlets/raw/master/pushpkg/pushpkg | bash /dev/stdin LDAP_USERNAME BRANCH [COMPONENT]
+curl -sSL https://github.com/AOSC-Dev/scriptlets/raw/master/pushpkg/pushpkg | bash /dev/stdin -u LDAP_USERNAME -b BRANCH -c [COMPONENT]
 ```
