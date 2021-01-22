@@ -3,11 +3,8 @@
 ARGS_SSH=""
 ARGS_RSYNC=""
 AFTER_CLEAN_DIRECTORY=0
-USERNAME=""
-BRANCH=""
-COMPOMENT=""
 
-while getopts "hvdb:u:c:" arg ; do
+while getopts "hvd" arg ; do
     case $arg in
         h)
             _help_message
@@ -20,15 +17,6 @@ while getopts "hvdb:u:c:" arg ; do
         d)
             AFTER_CLEAN_DIRECTORY=1
             ;;
-        b)
-            BRANCH=${OPTARG}
-            ;;
-        u)
-            USERNAME=${OPTARG}
-            ;; 
-        c)
-            COMPOMENT=${OPTARG}
-            ;;
         ?)
             _help_message
             exit 1
@@ -36,46 +24,48 @@ while getopts "hvdb:u:c:" arg ; do
     esac
 done
 
+shift "$((OPTIND-1))"
+
+USERNAME="$1"
+BRANCH="$2"
+COMPOMENT="${3:-main}"
 
 _help_message() {
-    printf "\
+    cat << EOF
 Usage:
 
-	pushpkg -u LDAP_USERNAME -b BRANCH -c [COMPONENT]
+	pushpkg <LDAP_USERNAME> <BRANCH> [COMPONENT]
 
-	-u LDAP_USERNAME: Your LDAP username.
-	-b BRANCH: AOSC OS update branch (stable, stable-proposed, testing, etc.)
+	LDAP_USERNAME: Your LDAP username.
+	BRANCH: AOSC OS update branch (stable, stable-proposed, testing, etc.)
 
 Options:
 
-    -c [COMPONENT]: (Optional) Repository component (main, bsp-sunxi, etc.)
-                       Falls back to "main" if not specified.
-    -d: pushpkg after clean OUTPUT directory
-    -v: ssh and rsync verbose
+    [COMPONENT]: (Optional) Repository component (main, bsp-sunxi, etc.)
+                 Falls back to \"main\" if not specified.
+    -d: Clean OUTPUT directory after finishing uploading.
+    -v: Enable verbose logging for ssh and rsync
 
-"
+EOF
 }
 
 if [[ -z $USERNAME || -z $BRANCH ]]; then
-    echo -e "[!!!] Please specify a LDAP user and specify a branch!\n"
+    echo "[!!!] Please specify a LDAP user and specify a branch!"
     _help_message
     exit 1
 fi
 
-if [ -z $COMPOMENT ]; then
-    COMPOMENT="main"
+if [[ ! -d 'debs' ]]; then
+    echo "[!!!] debs is not a directory."
+    exit 1
 fi
 
-ssh ${ARGS_SSH} ${USERNAME}@repo.aosc.io "mkdir -p /mirror/debs/pool/${BRANCH}/${COMPOMENT}"
+OUTPUT_DIR="$(readlink -f debs)"
+find "${OUTPUT_DIR}" -maxdepth 1 -type f -delete -print
 
-for i in debs/*/*; do
-    if [ $i = "*_noarch.deb" ]; then
-        rsync ${ARGS_RSYNC} --ignore-existing -rlOvhze ssh --progress $i ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
-    else
-        rsync ${ARGS_RSYNC} -rlOvhze ssh --progress $i ${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}
-    fi
-done
+ssh ${ARGS_SSH} "${USERNAME}@repo.aosc.io" "mkdir -p '/mirror/debs/pool/${BRANCH}/${COMPOMENT}'"
+rsync -rlOvhze ssh --progress "${OUTPUT_DIR}"/* "${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}"
 
 if [ $AFTER_CLEAN_DIRECTORY = 1 ]; then
-     sudo rm -rv $(pwd)/debs
+    sudo rm -rv "$(pwd)/debs"
 fi
