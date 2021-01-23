@@ -61,7 +61,7 @@ if [[ ! -d 'debs' ]]; then
 fi
 
 OUTPUT_DIR="$(readlink -f debs)"
-find "${OUTPUT_DIR}" -maxdepth 1 -type f -delete -print
+sudo find "${OUTPUT_DIR}" -maxdepth 1 -type f -delete -print
 
 ssh ${ARGS_SSH} "${USERNAME}@repo.aosc.io" "mkdir -p '/mirror/debs/pool/${BRANCH}/${COMPOMENT}'"
 
