@@ -65,21 +65,15 @@ find "${OUTPUT_DIR}" -maxdepth 1 -type f -delete -print
 
 ssh ${ARGS_SSH} "${USERNAME}@repo.aosc.io" "mkdir -p '/mirror/debs/pool/${BRANCH}/${COMPOMENT}'"
 
-NOARCH_LIST_PATH=$(mktemp)
-NOT_NOARCH_LIST_PATH=$(mktemp)
+pushd "$OUTPUT_DIR"
+NOARCH_LIST_PATH="$(mktemp)"
 find . -name '*_noarch.deb' -print > "$NOARCH_LIST_PATH"
-find . -not -name '*_noarch.deb' -print > "$NOT_NOARCH_LIST_PATH"
-
-for i in "$NOARCH_LIST_PATH"; do
-    rsync ${ARGS_RSYNC} -rlOvhze ssh --progress --ignore-existing $i "${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}/$(basename $(dirname $i)/"
-done
-
-for i in "$NOT_NOARCH_LIST_PATH"; do
-    rsync ${ARGS_RSYNC} -rlOvhze ssh --progress $i "${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}/$(basename $(dirname $i)/"
-done
+rsync ${ARGS_RSYNC} -rlOvhze ssh --progress --exclude-from "$NOARCH_LIST_PATH" . "${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}/"
+rsync ${ARGS_RSYNC} -rlOvhze ssh --progress --ignore-existing --files-from "$NOARCH_LIST_PATH" . "${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}/"
+popd
 
 rm -v "$NOARCH_LIST_PATH" "$NOT_NOARCH_LIST_PATH"
 
 if [ $AFTER_CLEAN_DIRECTORY = 1 ]; then
-    sudo rm -rv "$(pwd)/debs"
+    sudo rm -rv "$OUTPUT_DIR"
 fi
