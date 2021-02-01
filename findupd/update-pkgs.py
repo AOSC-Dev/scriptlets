@@ -202,12 +202,17 @@ if __name__ == "__main__":
         '-q', '--quite', action='store_true', help='Ignore WARNING')
     parser.add_argument(
         '-e', '--exclude', action='store_true', help='exclude pkgs from blacklist.txt')
+    parser.add_argument(
+        '-i', '--include', action='store_true', help='include pkgs from whitelist.txt')
 
     args = parser.parse_args()
 
     print("Found outdated pkgs...")
 
     blacklist = None
+    whitelist = None
+    if args.include:
+        whitelist = load_json('whitelist.txt')
     if args.exclude:
         blacklist = load_json('blacklist.txt')
 
@@ -238,6 +243,8 @@ if __name__ == "__main__":
         sys.exit(0)
     for pkg in newest_pkgs:
         if blacklist and pkg[0] in blacklist:
+            continue
+        if whitelist and pkg[0] not in whitelist:
             continue
         pkg_path = find_spec(pkg[0])
         if pkg_path is None:
