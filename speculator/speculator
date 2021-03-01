@@ -1,0 +1,54 @@
+#!/bin/bash
+_help_message() {
+printf "\
+Rewrites your stinky out-dated ACBS `spec` files.
+
+Usage:
+
+	speculator [spec file]
+
+"
+}
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    _help_message
+    exit 0
+fi
+
+if [ -z "$1" ]; then
+   echo -e "[!!!] Please specify a spec to reform!\n"
+   _help_message
+   exit 1
+fi
+
+if [ ! -f "$1" ]; then
+   echo -e "[!!!] Please specify a normal file!\n"
+   _help_message
+   exit 1
+fi
+
+if grep -q '^SRCTBL=' $1; then
+    echo "Tarball source detected ..."
+    source $1
+    sed -e 's|^SRCTBL\=\"|SRCS\=\"tbl\:\:|g' \
+        -e 's|^CHKSUM=|CHKSUMS=|g' \
+        -i $1
+elif grep -q '^DUMMYSRC=' $1; then
+    echo "Dummy source detected, skipping ..."
+elif grep -q '^.*SRC=' $1; then
+    echo "VCS source detected ..."
+    sed -e 's|\$|\\$|g' -i $1
+    source $1
+    export VCS="$(grep '^.*SRC=' $1 | awk -F"SRC" '{ print $1 }')"
+    export VCSCO="${VCS}CO"
+    export VCSSRC="${VCS}SRC"
+    printf "\
+VER=$VER
+SRCS="${VCS,,}::commit=${!VCSCO}::${!VCSSRC}"
+CHKSUMS=\"SKIP\"
+" > $1
+elif grep -q '^SRCS.*=' $1; then
+    echo "New spec format detected, skipping ..."
+else
+    echo "Unknown spec format, or non-spec file, skipping ..."
+fi
