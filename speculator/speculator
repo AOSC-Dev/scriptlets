@@ -43,10 +43,12 @@ elif grep -q '^.*SRC=' $1; then
     export VCSCO="${VCS}CO"
     export VCSSRC="${VCS}SRC"
     printf "\
-VER=$VER
 SRCS="${VCS,,}::commit=${!VCSCO}::${!VCSSRC}"
 CHKSUMS=\"SKIP\"
-" > $1
+" >> $1
+    sed -e "/$(echo $VCSSRC)/d" \
+        -e "/$(echo $VCSCO)/d" \
+        -i $1
 elif grep -q '^SRCS.*=' $1; then
     echo "New spec format detected, skipping ..."
 else
