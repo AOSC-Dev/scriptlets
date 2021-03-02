@@ -43,7 +43,7 @@ elif grep -q '^.*SRC=' $1; then
     export VCSCO="${VCS}CO"
     export VCSSRC="${VCS}SRC"
     printf "\
-SRCS="${VCS,,}::commit=${!VCSCO}::${!VCSSRC}"
+SRCS=\"${VCS,,}::commit=${!VCSCO}::${!VCSSRC}\"
 CHKSUMS=\"SKIP\"
 " >> $1
     sed -e "/$(echo $VCSSRC)/d" \
