@@ -34,7 +34,7 @@ def search_package_path(package_name: str) -> str:
                 return os.path.join(root, name)[2:]
 
 
-def write_strig_ro_file(package_name: str, rebuilds_path_list_str: str) -> None:
+def write_strig_to_file(package_name: str, rebuilds_path_list_str: str) -> None:
     with open('groups/{}-rebuilds'.format(package_name), "w") as f:
         f.write(rebuilds_path_list_str)
         print('groups/{}-rebuils create!'.format(package_name))
@@ -44,7 +44,7 @@ def main():
     package_name = sys.argv[1]
     request_list = get_request_list(package_name)
     rebuilds_path_list_str = gen_rebuilds_list_string(request_list)
-    write_strig_ro_file(package_name, rebuilds_path_list_str)
+    write_strig_to_file(package_name, rebuilds_path_list_str)
 
 
 if __name__ == '__main__':
