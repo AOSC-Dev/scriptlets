@@ -9,7 +9,7 @@ Make package rebuilds list
 pip3 --user install requests
 ```
 
-2. Copy make=rebuilds=list and run:
+2. Copy make-rebuilds-list and run:
 
 ```
 cp /path/to/make-rebuilds-list /path/to/abbs-tree
