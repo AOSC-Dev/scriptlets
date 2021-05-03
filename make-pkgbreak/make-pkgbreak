@@ -1,0 +1,56 @@
+#!/usr/bin/python3
+
+import requests
+import os
+import sys
+
+
+def get_revdep_list(package_name: str) -> list:
+    package_info = {}
+    response = requests.get(
+        "https://packages.aosc.io/revdep/{}?type=json".format(package_name))
+    if response.status_code == 200:
+        package_info = response.json()
+    else:
+        print("get_revdep_list: request packages.aosc.io failed!")
+        return
+    return [i["package"] for i in package_info["revdeps"]["PKGDEP"]]
+
+
+def get_package_version(package_name: str) -> str:
+    package_info = {}
+    response = requests.get(
+        "https://packages.aosc.io/packages/{}?type=json".format(package_name))
+    if response.status_code == 200:
+        package_info = response.json()
+    else:
+        print("get_package_list: request packages.aosc.io failed!")
+        return
+    return package_info["pkg"]["full_version"]
+
+
+def gen_pkgbreak_string(rev_deps: list) -> str:
+    max_line_size = 68
+    pkgbreak_list = ["{}<={}".format(
+        package, get_package_version(package)) for package in rev_deps]
+    buffer = []
+    buffer2 = []
+    for i in pkgbreak_list:
+        buffer.append(i)
+        if len(" ".join(buffer)) < max_line_size:
+            buffer2.append(i)
+        else:
+            buffer = [i]
+            buffer2.append("\\\n")
+            buffer2.append(" " * 9 + " ".join(buffer))
+    return "PKGBREAK=\"{}\"".format(" ".join(buffer2))
+
+
+def main():
+    package_name = sys.argv[1]
+    rev_deps = get_revdep_list(package_name)
+    print(gen_pkgbreak_string(rev_deps))
+
+
+if __name__ == "__main__":
+    main()
