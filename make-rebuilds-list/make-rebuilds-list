@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+
+import sys
+import requests
+import os
+
+
+def get_request_list(package_name: str) -> list:
+    rebuilds_list = []
+    package_info = {}
+    response = requests.get(
+        "https://packages.aosc.io/revdep/{}?type=json".format(package_name))
+    if response.status_code == 200:
+        package_info = response.json()
+    else:
+        print("Request packages.aosc.io failed!")
+        return
+    rev_runrime_deps = package_info["revdeps"]["PKGDEP"]
+    for i in rev_runrime_deps:
+        rebuilds_list.append(i["package"])
+    return rebuilds_list
+
+
+def gen_rebuilds_list_string(rebuilds_list: list) -> str:
+    rebuilds_path_list = [search_package_path(i) for i in rebuilds_list]
+    rebuilds_path_list = [i for i in rebuilds_path_list if i != None and len(i.split('/')) == 2]
+    print(rebuilds_path_list)
+    return "\n".join(rebuilds_path_list)
+
+
+def search_package_path(package_name: str) -> str:
+    for root, dirs, _ in os.walk(".", topdown=False):
+        for name in dirs:
+            if name == package_name:
+                return os.path.join(root, name)[2:]
+
+
+def write_strig_ro_file(package_name: str, rebuilds_path_list_str: str) -> None:
+    with open('groups/{}-rebuilds'.format(package_name), "w") as f:
+        f.write(rebuilds_path_list_str)
+
+
+def main():
+    package_name = sys.argv[1]
+    request_list = get_request_list(package_name)
+    rebuilds_path_list_str = gen_rebuilds_list_string(request_list)
+    write_strig_ro_file(package_name, rebuilds_path_list_str)
+
+
+if __name__ == '__main__':
+    main()
