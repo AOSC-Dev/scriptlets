@@ -5,28 +5,30 @@ import sys
 
 
 def get_revdep_list(package_name: str) -> list:
-    package_info = {}
     response = requests.get(
         "https://packages.aosc.io/revdep/{}?type=json".format(package_name))
-    if response.status_code == 200:
-        package_info = response.json()
-    else:
+    if response.status_code != 200:
         print("get_revdep_list: request packages.aosc.io failed!")
         return
+    package_info = response.json()
     return [i["package"] for i in package_info["revdeps"]["PKGDEP"]]
 
 
 def get_package_version(package_name: str) -> str:
-    package_info = {}
     response = requests.get(
         "https://packages.aosc.io/packages/{}?type=json".format(package_name))
-    if response.status_code == 200:
-        package_info = response.json()
+    if response.status_code != 200:
+        print("get_package_version: response packages.aosc.io failed!")
+        return
+    package_info = response.json()
     package_section = "{}-{}".format(
         package_info["pkg"]["category"], package_info["pkg"]["section"])
     response = requests.get(
         "https://raw.githubusercontent.com/AOSC-Dev/aosc-os-abbs/stable/{}/{}/spec".format(
             package_section, package_name))
+    if response.status_code != 200:
+        print("get_package_version: response packages.aosc.io failed!")
+        return
     package_spec = response.text.split("\n")
     package_version = package_spec[0].replace("VER=", "")
     return package_version
