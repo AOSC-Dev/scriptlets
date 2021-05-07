@@ -6,19 +6,13 @@ import os
 
 
 def get_request_list(package_name: str) -> list:
-    rebuilds_list = []
-    package_info = {}
     response = requests.get(
         "https://packages.aosc.io/revdep/{}?type=json".format(package_name))
-    if response.status_code == 200:
-        package_info = response.json()
-    else:
+    if response.status_code != 200:
         print("Request packages.aosc.io failed!")
-        return
-    rev_runtime_deps = package_info["revdeps"]["PKGDEP"]
-    for i in rev_runtime_deps:
-        rebuilds_list.append(i["package"])
-    return rebuilds_list
+        exit(1)
+    package_info = response.json()
+    return [i["package"] for i in package_info["revdeps"]["PKGDEP"]]
 
 
 def gen_rebuilds_list_string(rebuilds_list: list) -> str:
