@@ -42,10 +42,9 @@ def write_strig_to_file(package_name: str, rebuilds_path_list_str: str) -> None:
 
 
 def main():
-    if len(sys.argv) != 2 {
+    if len(sys.argv) != 2:
         print("Usage: make-rebuilds-list PACKAGE_NAME")
         return
-    }
     package_name = sys.argv[1]
     request_list = get_request_list(package_name)
     rebuilds_path_list_str = gen_rebuilds_list_string(request_list)
