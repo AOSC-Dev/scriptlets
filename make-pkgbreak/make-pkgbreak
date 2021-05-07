@@ -46,6 +46,9 @@ def gen_pkgbreak_string(rev_deps: list) -> str:
 
 
 def main():
+    if len(sys.argv) != 2:
+        print("Usage: make-pkgbreak PACKAGENAME")
+        return
     package_name = sys.argv[1]
     rev_deps = get_revdep_list(package_name)
     print(gen_pkgbreak_string(rev_deps))
