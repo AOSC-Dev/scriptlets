@@ -22,17 +22,13 @@ def get_package_version(package_name: str) -> str:
         "https://packages.aosc.io/packages/{}?type=json".format(package_name))
     if response.status_code == 200:
         package_info = response.json()
-    else:
-        print("get_package_version: request packages.aosc.io failed!")
-        return
-    package_version = -1
-    for i in package_info["pkg"]["dpkg_matrix"][0][1]:
-        if i != None and "pool/stable" in i["filename"]:
-            package_version = i["version"]
-            break
-    if package_version == -1:
-        print("get_package_version: cannot get package {} version!".format(package_name))
-        return
+    package_section = "{}-{}".format(
+        package_info["pkg"]["category"], package_info["pkg"]["section"])
+    response = requests.get(
+        "https://raw.githubusercontent.com/AOSC-Dev/aosc-os-abbs/stable/{}/{}/spec".format(
+            package_section, package_name))
+    package_spec = response.text.split("\n")
+    package_version = package_spec[0].replace("VER=", "")
     return package_version
 
 
