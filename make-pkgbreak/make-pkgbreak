@@ -9,7 +9,7 @@ def get_revdep_list(package_name: str) -> list:
         "https://packages.aosc.io/revdep/{}?type=json".format(package_name))
     if response.status_code != 200:
         print("get_revdep_list: request packages.aosc.io failed!")
-        return
+        exit(1)
     package_info = response.json()
     return [i["package"] for i in package_info["revdeps"]["PKGDEP"]]
 
@@ -19,7 +19,7 @@ def get_package_version(package_name: str) -> str:
         "https://packages.aosc.io/packages/{}?type=json".format(package_name))
     if response.status_code != 200:
         print("get_package_version: response packages.aosc.io failed or package doesn't exist in mirror repo!")
-        return
+        exit(1)
     package_info = response.json()
     package_section = "{}-{}".format(
         package_info["pkg"]["category"], package_info["pkg"]["section"])
@@ -28,7 +28,7 @@ def get_package_version(package_name: str) -> str:
             package_section, package_name))
     if response.status_code != 200:
         print("get_package_version: response github.com failed or package doesn't exist in GitHub repo!")
-        return
+        exit(1)
     package_spec = response.text.split("\n")
     package_version = package_spec[0].replace("VER=", "")
     return package_version
@@ -54,7 +54,7 @@ def gen_pkgbreak_string(rev_deps: list) -> str:
 def main():
     if len(sys.argv) != 2:
         print("Usage: make-pkgbreak PACKAGENAME")
-        return
+        exit(1)
     package_name = sys.argv[1]
     rev_deps = get_revdep_list(package_name)
     print(gen_pkgbreak_string(rev_deps))
