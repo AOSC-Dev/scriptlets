@@ -25,7 +25,7 @@ def gen_rebuilds_list_string(rebuilds_list: list) -> str:
     rebuilds_path_list = [search_package_path(i) for i in rebuilds_list]
     rebuilds_path_list = [
         i for i in rebuilds_path_list if i != None and len(i.split('/')) == 2]
-    return "\n".join(rebuilds_path_list)
+    return "\n".join(rebuilds_path_list) + "\n"
 
 
 def search_package_path(package_name: str) -> str:
