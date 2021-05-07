@@ -18,7 +18,7 @@ def get_package_version(package_name: str) -> str:
     response = requests.get(
         "https://packages.aosc.io/packages/{}?type=json".format(package_name))
     if response.status_code != 200:
-        print("get_package_version: response packages.aosc.io failed!")
+        print("get_package_version: response packages.aosc.io failed or package doesn't exist in mirror repo!")
         return
     package_info = response.json()
     package_section = "{}-{}".format(
@@ -27,7 +27,7 @@ def get_package_version(package_name: str) -> str:
         "https://raw.githubusercontent.com/AOSC-Dev/aosc-os-abbs/stable/{}/{}/spec".format(
             package_section, package_name))
     if response.status_code != 200:
-        print("get_package_version: response packages.aosc.io failed!")
+        print("get_package_version: response github.com failed or package doesn't exist in GitHub repo!")
         return
     package_spec = response.text.split("\n")
     package_version = package_spec[0].replace("VER=", "")
