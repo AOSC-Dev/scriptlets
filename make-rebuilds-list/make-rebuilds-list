@@ -23,7 +23,8 @@ def get_request_list(package_name: str) -> list:
 
 def gen_rebuilds_list_string(rebuilds_list: list) -> str:
     rebuilds_path_list = [search_package_path(i) for i in rebuilds_list]
-    rebuilds_path_list = [i for i in rebuilds_path_list if i != None and len(i.split('/')) == 2]
+    rebuilds_path_list = [
+        i for i in rebuilds_path_list if i != None and len(i.split('/')) == 2]
     return "\n".join(rebuilds_path_list)
 
 
@@ -37,10 +38,14 @@ def search_package_path(package_name: str) -> str:
 def write_strig_to_file(package_name: str, rebuilds_path_list_str: str) -> None:
     with open('groups/{}-rebuilds'.format(package_name), "w") as f:
         f.write(rebuilds_path_list_str)
-        print('groups/{}-rebuils create!'.format(package_name))
+        print('groups/{}-rebuils created!'.format(package_name))
 
 
 def main():
+    if len(sys.argv != 1) {
+        print("Usage: make-rebuilds-list PACKAGE_NAME")
+        return
+    }
     package_name = sys.argv[1]
     request_list = get_request_list(package_name)
     rebuilds_path_list_str = gen_rebuilds_list_string(request_list)
