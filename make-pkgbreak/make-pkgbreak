@@ -23,9 +23,10 @@ def get_package_version(package_name: str) -> str:
     package_info = response.json()
     package_section = "{}-{}".format(
         package_info["pkg"]["category"], package_info["pkg"]["section"])
+    package_directory_name = package_info["pkg"]["directory"]
     response = requests.get(
         "https://raw.githubusercontent.com/AOSC-Dev/aosc-os-abbs/stable/{}/{}/spec".format(
-            package_section, package_name))
+            package_section, package_directory_name))
     if response.status_code != 200:
         print("get_package_version: response github.com failed or package doesn't exist in GitHub repo!")
         exit(1)
