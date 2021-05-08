@@ -34,13 +34,29 @@ def gen_rebuilds_list_string(rebuilds_list: list) -> str:
 
 def search_package_path(package_name: str) -> str:
     with os.scandir(".") as dir1:
-        for i in dir1:
-            if i.is_dir() and not i.name.startswith('.'):
-                with os.scandir("./{}".format(i.name)) as dir2:
-                    for j in dir2:
-                        if j.name == package_name and j.is_dir():
-                            return os.path.join(".", i.name, j.name)[2:]
-
+        for section in dir1:
+            if section.is_dir() and not section.name.startswith('.'):
+                with os.scandir(section) as dir2:
+                    for package in dir2:
+                        if package.name == package_name and package.is_dir() and os.path.isdir(
+                                os.path.join(package, "autobuild")):
+                            return package[2:]
+                        # search subpackage, like arch-install-scripts/01-genfstab
+                        path = package
+                        if os.path.isdir(path) and section.name != "groups":
+                            with os.scandir(path) as dir3:
+                                for subpackage in dir3:
+                                    if subpackage.name != "autobuild" and subpackage.is_dir():
+                                        try:
+                                            with open(os.path.join(subpackage, "defines"), "r") as f:
+                                                defines = f.readlines()
+                                        except:
+                                            with open(os.path.join(subpackage, "autobuild/defines"), "r") as f:
+                                                defines = f.readlines()
+                                        finally:
+                                            for line in defines:
+                                                if "PKGNAME" in line and package_name in line:
+                                                    return package.path[2:]
 
 
 def write_strig_to_file(package_name: str, rebuilds_path_list_str: str) -> None:
