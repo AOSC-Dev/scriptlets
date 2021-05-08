@@ -18,9 +18,7 @@ def get_rebuilds_list(package_name: str) -> list:
             not_sorted_rebuilds_list.append(package)
     if package_info["sobreaks_circular"] != None:
         not_sorted_rebuilds_list += package_info["sobreaks_circular"]
-    rebuilds_list = []
-    rebuilds_list = [
-        i for i in not_sorted_rebuilds_list if i not in rebuilds_list]
+    rebuilds_list = list(dict.fromkeys(not_sorted_rebuilds_list))
     if len(rebuilds_list) == 0:
         print("Package {} has nothing to rebuild!".format(package_name))
         exit(0)
@@ -35,10 +33,14 @@ def gen_rebuilds_list_string(rebuilds_list: list) -> str:
 
 
 def search_package_path(package_name: str) -> str:
-    for root, dirs, _ in os.walk(".", topdown=False):
-        for name in dirs:
-            if name == package_name:
-                return os.path.join(root, name)[2:]
+    with os.scandir(".") as dir1:
+        for i in dir1:
+            if i.is_dir() and not i.name.startswith('.'):
+                with os.scandir("./{}".format(i.name)) as dir2:
+                    for j in dir2:
+                        if j.name == package_name and j.is_dir():
+                            return os.path.join(".", i.name, j.name)[2:]
+
 
 
 def write_strig_to_file(package_name: str, rebuilds_path_list_str: str) -> None:
