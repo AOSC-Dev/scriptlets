@@ -40,7 +40,7 @@ def search_package_path(package_name: str) -> str:
                     for package in dir2:
                         if package.name == package_name and package.is_dir() and os.path.isdir(
                                 os.path.join(package, "autobuild")):
-                            return package[2:]
+                            return package.path[2:]
                         # search subpackage, like arch-install-scripts/01-genfstab
                         path = package
                         if os.path.isdir(path) and section.name != "groups":
@@ -55,7 +55,7 @@ def search_package_path(package_name: str) -> str:
                                                 defines = f.readlines()
                                         finally:
                                             for line in defines:
-                                                if "PKGNAME" in line and package_name in line:
+                                                if "PKGNAME=" in line and package_name in line:
                                                     return package.path[2:]
 
 
