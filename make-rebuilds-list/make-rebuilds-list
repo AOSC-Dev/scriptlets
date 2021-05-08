@@ -5,14 +5,26 @@ import requests
 import os
 
 
-def get_request_list(package_name: str) -> list:
+def get_rebuilds_list(package_name: str) -> list:
     response = requests.get(
         "https://packages.aosc.io/revdep/{}?type=json".format(package_name))
     if response.status_code != 200:
         print("Request packages.aosc.io failed!")
         exit(1)
     package_info = response.json()
-    return [i["package"] for i in package_info["revdeps"]["PKGDEP"]]
+    not_sorted_rebuilds_list = []
+    for group in package_info["sobreaks"]:
+        for package in group:
+            not_sorted_rebuilds_list.append(package)
+    if package_info["sobreaks_circular"] != None:
+        not_sorted_rebuilds_list += package_info["sobreaks_circular"]
+    rebuilds_list = []
+    rebuilds_list = [
+        i for i in not_sorted_rebuilds_list if i not in rebuilds_list]
+    if len(rebuilds_list) == 0:
+        print("Package {} has nothing to rebuild!".format(package_name))
+        exit(0)
+    return rebuilds_list
 
 
 def gen_rebuilds_list_string(rebuilds_list: list) -> str:
@@ -40,7 +52,7 @@ def main():
         print("Usage: make-rebuilds-list PACKAGE_NAME")
         exit(1)
     package_name = sys.argv[1]
-    request_list = get_request_list(package_name)
+    request_list = get_rebuilds_list(package_name)
     rebuilds_path_list_str = gen_rebuilds_list_string(request_list)
     write_strig_to_file(package_name, rebuilds_path_list_str)
 
