@@ -4,14 +4,24 @@ import requests
 import sys
 
 
-def get_revdep_list(package_name: str) -> list:
+def get_pkgbreak_list(package_name: str) -> list:
     response = requests.get(
         "https://packages.aosc.io/revdep/{}?type=json".format(package_name))
     if response.status_code != 200:
         print("get_revdep_list: request packages.aosc.io failed!")
         exit(1)
     package_info = response.json()
-    return [i["package"] for i in package_info["revdeps"]["PKGDEP"]]
+    not_sorted_pkgbreak_list = []
+    for group in package_info["sobreaks"]:
+        for package in group:
+            not_sorted_pkgbreak_list.append(package)
+    if package_info["sobreaks_circular"] != None:
+        not_sorted_pkgbreak_list += package_info["sobreaks_circular"]
+    pkgbreak_list = list(dict.fromkeys(not_sorted_pkgbreak_list))
+    if len(pkgbreak_list) == 0:
+        print("Package {} has nothing to break!".format(package_name))
+        exit(0)
+    return pkgbreak_list
 
 
 def get_package_version(package_name: str) -> str:
@@ -35,10 +45,10 @@ def get_package_version(package_name: str) -> str:
     return package_version
 
 
-def gen_pkgbreak_string(rev_deps: list) -> str:
+def gen_pkgbreak_string(break_list: list) -> str:
     max_line_size = 68
     pkgbreak_list = ["{}<={}".format(
-        package, get_package_version(package)) for package in rev_deps]
+        package, get_package_version(package)) for package in break_list]
     buffer = []
     buffer2 = []
     for i in pkgbreak_list:
@@ -57,8 +67,8 @@ def main():
         print("Usage: make-pkgbreak PACKAGENAME")
         exit(1)
     package_name = sys.argv[1]
-    rev_deps = get_revdep_list(package_name)
-    print(gen_pkgbreak_string(rev_deps))
+    break_list = get_pkgbreak_list(package_name)
+    print(gen_pkgbreak_string(break_list))
 
 
 if __name__ == "__main__":
