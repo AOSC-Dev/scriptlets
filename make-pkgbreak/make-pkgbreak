@@ -11,13 +11,13 @@ def get_pkgbreak_list(package_name: str) -> list:
         print("get_revdep_list: request packages.aosc.io failed!")
         exit(1)
     package_info = response.json()
-    not_sorted_pkgbreak_list = []
+    pkgbreak_list = []
     for group in package_info["sobreaks"]:
         for package in group:
-            not_sorted_pkgbreak_list.append(package)
+            if package not in pkgbreak_list:
+                pkgbreak_list.append(package)
     if package_info["sobreaks_circular"] != None:
-        not_sorted_pkgbreak_list += package_info["sobreaks_circular"]
-    pkgbreak_list = list(dict.fromkeys(not_sorted_pkgbreak_list))
+        pkgbreak_list += package_info["sobreaks_circular"]
     if len(pkgbreak_list) == 0:
         print("Package {} has nothing to break!".format(package_name))
         exit(0)

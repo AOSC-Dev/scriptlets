@@ -12,13 +12,13 @@ def get_rebuilds_list(package_name: str) -> list:
         print("Request packages.aosc.io failed!")
         exit(1)
     package_info = response.json()
-    not_sorted_rebuilds_list = []
+    rebuilds_list = []
     for group in package_info["sobreaks"]:
         for package in group:
-            not_sorted_rebuilds_list.append(package)
+            if package not in rebuilds_list:
+                rebuilds_list.append(package)
     if package_info["sobreaks_circular"] != None:
-        not_sorted_rebuilds_list += package_info["sobreaks_circular"]
-    rebuilds_list = list(dict.fromkeys(not_sorted_rebuilds_list))
+        rebuilds_list += package_info["sobreaks_circular"]
     if len(rebuilds_list) == 0:
         print("Package {} has nothing to rebuild!".format(package_name))
         exit(0)
