@@ -13,10 +13,8 @@ def get_rebuilds_list(package_name: str) -> list:
         exit(1)
     package_info = response.json()
     rebuilds_list = []
-    for group in package_info["sobreaks"]:
-        for package in group:
-            if package not in rebuilds_list:
-                rebuilds_list.append(package)
+    rebuilds_list = [package for group in package_info["sobreaks"]
+                     for package in group if package not in rebuilds_list]
     if package_info["sobreaks_circular"] != None:
         rebuilds_list += package_info["sobreaks_circular"]
     if len(rebuilds_list) == 0:

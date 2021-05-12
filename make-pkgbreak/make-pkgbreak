@@ -12,10 +12,8 @@ def get_pkgbreak_list(package_name: str) -> list:
         exit(1)
     package_info = response.json()
     pkgbreak_list = []
-    for group in package_info["sobreaks"]:
-        for package in group:
-            if package not in pkgbreak_list:
-                pkgbreak_list.append(package)
+    pkgbreak_list = [package for group in package_info["sobreaks"]
+                     for package in group if package not in pkgbreak_list]
     if package_info["sobreaks_circular"] != None:
         pkgbreak_list += package_info["sobreaks_circular"]
     if len(pkgbreak_list) == 0:
