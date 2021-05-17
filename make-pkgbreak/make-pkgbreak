@@ -23,7 +23,6 @@ def get_pkgbreak_list(package_name: str) -> list:
 
 
 def get_package_version(package_name: str) -> str:
-    print("Getting package {} version...".format(package_name))
     response = requests.get(
         "https://packages.aosc.io/packages/{}?type=json".format(package_name))
     if response.status_code != 200:
@@ -40,9 +39,10 @@ def get_package_version(package_name: str) -> str:
         print("get_package_version: response github.com failed or package doesn't exist in GitHub repo!")
         exit(1)
     package_spec = response.text.split("\n")
-    package_version = [i.replace("VER=", "") for i in package_spec if i.startswith("VER=")][0]
-    print(package_version)
-    return package_version
+    for i in package_spec:
+        if i.startswith("VER="):
+            package_version = i.replace("VER=", "")
+            return package_version
 
 
 def gen_pkgbreak_string(break_list: list) -> str:
