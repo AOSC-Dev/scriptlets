@@ -24,18 +24,24 @@ def main():
     if not os.path.isdir("./debs"):
         print("[!!!] debs is not a directory!")
         exit(1)
-    else:
-        username = args.username
-        branch = args.branch
-        component = args.component
-        verbose = args.verbose
-        delete = args.delete
-        mkdir_on_repo(username, branch, component, verbose)
-        rsync_non_noarch_file(username, branch, component, verbose)
-        rsync_noarch_file(username, branch, component, verbose)
-        if delete:
-            clean_output_directory
-        exit(0)
+    username = args.username
+    branch = args.branch
+    component = args.component
+    verbose = args.verbose
+    delete = args.delete
+    delete_junk()
+    mkdir_on_repo(username, branch, component, verbose)
+    rsync_non_noarch_file(username, branch, component, verbose)
+    rsync_noarch_file(username, branch, component, verbose)
+    if delete:
+        clean_output_directory
+    exit(0)
+
+
+def delete_junk():
+    debs_path = os.path.abspath("./debs")
+    subprocess.run(
+        "find {} -maxdepth 1 -type f -delete -print".format(debs_path))
 
 
 def mkdir_on_repo(username: str, branch: str, component: str, verbose=False):
@@ -49,15 +55,18 @@ def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=Fa
         "" if not verbose else "-v", username, branch, component)
     subprocess.run(command)
 
+
 def rsync_noarch_file(username: str, branch: str, component: str, verbose=False):
     command = "rsync {} -rlOvhze ssh --progress --include \"*_noarch.deb\" .  \"{}@repo.aosc.io:/mirror/debs/pool/{}/{}/\"".format(
         "" if not verbose else "-v", username, branch, component)
     subprocess.run(command)
 
+
 def clean_output_directory():
     print("Cleaning debs...")
     debs_path = os.path.abspath("./debs")
     os.rmdir(debs_path)
+
 
 if __name__ == "__main__":
     main()
