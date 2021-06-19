@@ -41,7 +41,7 @@ def main():
 def delete_junk():
     debs_path = os.path.abspath("./debs")
     subprocess.run(
-        "find {} -maxdepth 1 -type f -delete -print".format(debs_path))
+        "sudo find {} -maxdepth 1 -type f -delete -print".format(debs_path))
 
 
 def mkdir_on_repo(username: str, branch: str, component: str, verbose=False):
@@ -65,7 +65,7 @@ def rsync_noarch_file(username: str, branch: str, component: str, verbose=False)
 def clean_output_directory():
     print("Cleaning debs...")
     debs_path = os.path.abspath("./debs")
-    os.rmdir(debs_path)
+    subprocess.run("sudo rm -rv {}".format(debs_path))
 
 
 if __name__ == "__main__":
