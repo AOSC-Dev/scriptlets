@@ -14,8 +14,10 @@ def main():
                         help="AOSC OS update branch (stable, stable-proposed, testing, etc.)")
     parser.add_argument("component", metavar="COMPONENT",
                         type=str, help="(Optional) Repository component (main, bsp-sunxi, etc.) Falls back to \"main\" if not specified.", nargs="?", default="main")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging for ssh and rsync")
-    parser.add_argument("-d", "--delete", action="store_true", help="Clean OUTPUT directory after finishing uploading.")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Enable verbose logging for ssh and rsync")
+    parser.add_argument("-d", "--delete", action="store_true",
+                        help="Clean OUTPUT directory after finishing uploading.")
     args = parser.parse_args()
     if not args.username or not args.branch:
         print("[!!!] Please specify a LDAP user and specify a branch!")
@@ -40,24 +42,28 @@ def main():
 
 def delete_junk():
     debs_path = os.path.abspath("./debs")
-    command = "sudo find {} -maxdepth 1 -type f -delete -print".format(debs_path).split(" ")
+    command = "sudo find {} -maxdepth 1 -type f -delete -print".format(
+        debs_path).split(" ")
     subprocess.run(command)
 
 
 def mkdir_on_repo(username: str, branch: str, component: str, verbose=False):
-    command = ["ssh", "" if verbose else "-vvv", "{}@repo.aosc.io".format(username), "mkdir", "-p", "/mirror/debs/pool/{}/{}".format(branch, component)]
+    command = ["ssh", "" if verbose else "-vvv", "{}@repo.aosc.io".format(
+        username), "mkdir", "-p", "/mirror/debs/pool/{}/{}".format(branch, component)]
     command = [i for i in command if i != ""]
     subprocess.run(command)
 
 
 def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=False):
-    command = ["rsync", "" if verbose else "-v", "-rlOvhze", "ssh", "--progress", "--exclude", "*_noarch.deb", ".", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
+    command = ["rsync", "" if verbose else "-v", "-rlOvhze", "ssh", "--progress", "--exclude",
+               "*_noarch.deb", ".", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
     command = [i for i in command if i != ""]
     subprocess.run(command)
 
 
 def rsync_noarch_file(username: str, branch: str, component: str, verbose=False):
-    command = ["rsync", "" if verbose else "-v", "-rlOvhze", "ssh", "--progress", "--include", "*_noarch.deb", ".", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
+    command = ["rsync", "" if verbose else "-v", "-rlOvhze", "ssh", "--progress", "--include",
+               "*_noarch.deb", ".", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
     command = [i for i in command if i != ""]
     subprocess.run(command)
 
