@@ -47,23 +47,26 @@ def delete_junk():
 
 
 def mkdir_on_repo(username: str, branch: str, component: str, verbose=False):
-    command = ["ssh", "" if verbose else "-vvv", "{}@repo.aosc.io".format(
+    command = ["ssh", "{}@repo.aosc.io".format(
         username), "mkdir", "-p", "/mirror/debs/pool/{}/{}".format(branch, component)]
-    command = [i for i in command if i != ""]
+    if verbose:
+        command.insert(1, "-vvv")
     subprocess.check_call(command)
 
 
 def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=False):
-    command = ["rsync", "" if verbose else "-v", "-rlOvhze", "ssh", "--progress", "--exclude",
+    command = ["rsync", "-rlOvhze", "ssh", "--progress", "--exclude",
                "*_noarch.deb", ".", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
-    command = [i for i in command if i != ""]
+    if verbose:
+        command.insert(1, "-v")
     subprocess.check_call(command)
 
 
 def rsync_noarch_file(username: str, branch: str, component: str, verbose=False):
     command = ["rsync", "" if verbose else "-v", "-rlOvhze", "ssh", "--progress", "--include",
                "*_noarch.deb", ".", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
-    command = [i for i in command if i != ""]
+    if verbose:
+        command.insert(1, "-v")
     subprocess.check_call(command)
 
 
