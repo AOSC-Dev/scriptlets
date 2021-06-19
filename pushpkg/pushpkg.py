@@ -42,7 +42,8 @@ def main():
 
 def delete_junk():
     debs_path = os.path.abspath("./debs")
-    command = ["sudo", "find", debs_path, "-maxdepth", "1", "-type", "f", "-delete", "-print"]
+    command = ["sudo", "find", debs_path, "-maxdepth",
+               "1", "-type", "f", "-delete", "-print"]
     subprocess.check_call(command)
 
 
@@ -63,7 +64,7 @@ def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=Fa
 
 
 def rsync_noarch_file(username: str, branch: str, component: str, verbose=False):
-    command = ["rsync", "" if verbose else "-v", "-rlOvhze", "ssh", "--progress", "--include",
+    command = ["rsync", "--ignore-existing", "-rlOvhze", "ssh", "--progress", "--include",
                "*_noarch.deb", ".", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
     if verbose:
         command.insert(1, "-v")
