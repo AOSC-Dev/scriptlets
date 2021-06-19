@@ -40,32 +40,32 @@ def main():
 
 def delete_junk():
     debs_path = os.path.abspath("./debs")
-    os.popen(
-        "sudo find {} -maxdepth 1 -type f -delete -print".format(debs_path))
+    command = "sudo find {} -maxdepth 1 -type f -delete -print".format(debs_path).split(" ")
+    subprocess.run(command)
 
 
 def mkdir_on_repo(username: str, branch: str, component: str, verbose=False):
     command = "ssh {} {}@repo.aosc.io \"mkdir -p '/mirror/debs/pool/${}/${}'".format(
-        "" if not verbose else "-vvv", username, branch, component)
-    os.popen(command)
+        "" if not verbose else "-vvv", username, branch, component).split(" ")
+    subprocess.run(command)
 
 
 def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=False):
     command = "rsync {} -rlOvhze ssh --progress --exclude \"*_noarch.deb\" . \"{}@repo.aosc.io:/mirror/debs/pool/{}/{}/\"".format(
-        "" if not verbose else "-v", username, branch, component)
-    os.popen(command)
+        "" if not verbose else "-v", username, branch, component).split(" ")
+    subprocess.run(command)
 
 
 def rsync_noarch_file(username: str, branch: str, component: str, verbose=False):
     command = "rsync {} -rlOvhze ssh --progress --include \"*_noarch.deb\" .  \"{}@repo.aosc.io:/mirror/debs/pool/{}/{}/\"".format(
-        "" if not verbose else "-v", username, branch, component)
-    os.popen(command)
+        "" if not verbose else "-v", username, branch, component).split(" ")
+    subprocess.run(command)
 
 
 def clean_output_directory():
     print("Cleaning debs...")
     debs_path = os.path.abspath("./debs")
-    os.popen("sudo rm -rv {}".format(debs_path))
+    subprocess.run("sudo rm -rv {}".format(debs_path).split(" "))
 
 
 if __name__ == "__main__":
