@@ -42,36 +42,35 @@ def main():
 
 def delete_junk():
     debs_path = os.path.abspath("./debs")
-    command = "sudo find {} -maxdepth 1 -type f -delete -print".format(
-        debs_path).split(" ")
-    subprocess.run(command)
+    command = ["sudo", "find", debs_path, "-maxdepth", "1", "-type", "f", "-delete", "-print"]
+    subprocess.check_call(command)
 
 
 def mkdir_on_repo(username: str, branch: str, component: str, verbose=False):
     command = ["ssh", "" if verbose else "-vvv", "{}@repo.aosc.io".format(
         username), "mkdir", "-p", "/mirror/debs/pool/{}/{}".format(branch, component)]
     command = [i for i in command if i != ""]
-    subprocess.run(command)
+    subprocess.check_call(command)
 
 
 def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=False):
     command = ["rsync", "" if verbose else "-v", "-rlOvhze", "ssh", "--progress", "--exclude",
                "*_noarch.deb", ".", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
     command = [i for i in command if i != ""]
-    subprocess.run(command)
+    subprocess.check_call(command)
 
 
 def rsync_noarch_file(username: str, branch: str, component: str, verbose=False):
     command = ["rsync", "" if verbose else "-v", "-rlOvhze", "ssh", "--progress", "--include",
                "*_noarch.deb", ".", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
     command = [i for i in command if i != ""]
-    subprocess.run(command)
+    subprocess.check_call(command)
 
 
 def clean_output_directory():
     print("Cleaning debs...")
     debs_path = os.path.abspath("./debs")
-    subprocess.run("sudo rm -rv {}".format(debs_path).split(" "))
+    subprocess.check_call(["sudo", "rm", "-rv", debs_path])
 
 
 if __name__ == "__main__":
