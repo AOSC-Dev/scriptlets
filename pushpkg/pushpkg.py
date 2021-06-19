@@ -34,7 +34,7 @@ def main():
     rsync_non_noarch_file(username, branch, component, verbose)
     rsync_noarch_file(username, branch, component, verbose)
     if delete:
-        clean_output_directory
+        clean_output_directory()
     exit(0)
 
 
