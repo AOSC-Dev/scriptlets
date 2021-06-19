@@ -15,9 +15,9 @@ def main():
     parser.add_argument("component", metavar="COMPONENT",
                         type=str, help="(Optional) Repository component (main, bsp-sunxi, etc.) Falls back to \"main\" if not specified.", nargs="?", default="main")
     parser.add_argument("-v", "--verbose", action="store_true",
-                        help="Enable verbose logging for ssh and rsync", default=False)
+                        help="Enable verbose logging for ssh and rsync")
     parser.add_argument("-d", "--delete", action="store_true",
-                        help="Clean OUTPUT directory after finishing uploading.", default=False)
+                        help="Clean OUTPUT directory after finishing uploading.")
     args = parser.parse_args()
     if not args.username or not args.branch:
         print("[!!!] Please specify a LDAP user and specify a branch!")
@@ -26,18 +26,11 @@ def main():
     if not os.path.isdir("./debs"):
         print("[!!!] debs is not a directory!")
         exit(1)
-    username = args.username
-    branch = args.branch
-    component = args.component
-    if args.verbose:
-        verbose = args.verbose
-    if args.delete:
-        delete = args.delete
     delete_junk()
-    mkdir_on_repo(username, branch, component, verbose)
-    rsync_non_noarch_file(username, branch, component, verbose)
-    rsync_noarch_file(username, branch, component, verbose)
-    if delete:
+    mkdir_on_repo(args.username, args.branch, args.component, args.verbose)
+    rsync_non_noarch_file(args.username, args.branch, args.component, args.verbos)
+    rsync_noarch_file(args.username, args.branch, args.component, args.verbos)
+    if args.delete:
         clean_output_directory()
     exit(0)
 
