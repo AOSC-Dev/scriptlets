@@ -15,9 +15,9 @@ def main():
     parser.add_argument("component", metavar="COMPONENT",
                         type=str, help="(Optional) Repository component (main, bsp-sunxi, etc.) Falls back to \"main\" if not specified.", nargs="?", default="main")
     parser.add_argument("-v", "--verbose", action="store_true",
-                        help="Enable verbose logging for ssh and rsync")
+                        help="Enable verbose logging for ssh and rsync", default=False)
     parser.add_argument("-d", "--delete", action="store_true",
-                        help="Clean OUTPUT directory after finishing uploading.")
+                        help="Clean OUTPUT directory after finishing uploading.", default=False)
     args = parser.parse_args()
     if not args.username or not args.branch:
         print("[!!!] Please specify a LDAP user and specify a branch!")
