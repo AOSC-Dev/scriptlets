@@ -29,8 +29,10 @@ def main():
     username = args.username
     branch = args.branch
     component = args.component
-    verbose = args.verbose
-    delete = args.delete
+    if args.verbose:
+        verbose = args.verbose
+    if args.delete:
+        delete = args.delete
     delete_junk()
     mkdir_on_repo(username, branch, component, verbose)
     rsync_non_noarch_file(username, branch, component, verbose)
