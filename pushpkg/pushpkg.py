@@ -9,13 +9,13 @@ def main():
     parser = argparse.ArgumentParser(
         description="pushpkg, push aosc package to repo.aosc.io")
     parser.add_argument("username", metavar="USERNAME", type=str,
-                        help="Your LDAP Username")
+                        help="Your LDAP username.")
     parser.add_argument("branch", metavar="BRANCH", type=str,
-                        help="push package to branch")
+                        help="AOSC OS update branch (stable, stable-proposed, testing, etc.)")
     parser.add_argument("component", metavar="COMPONENT",
-                        type=str, help="push package to component", nargs="?", default="main")
-    parser.add_argument("-v", "--verbose", action="store_true")
-    parser.add_argument("-d", "--delete", action="store_true")
+                        type=str, help="(Optional) Repository component (main, bsp-sunxi, etc.) Falls back to \"main\" if not specified.", nargs="?", default="main")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging for ssh and rsync")
+    parser.add_argument("-d", "--delete", action="store_true", help="Clean OUTPUT directory after finishing uploading.")
     args = parser.parse_args()
     if not args.username or not args.branch:
         print("[!!!] Please specify a LDAP user and specify a branch!")
