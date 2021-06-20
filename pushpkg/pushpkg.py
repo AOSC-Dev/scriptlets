@@ -18,6 +18,8 @@ def main():
                         help="Enable verbose logging for ssh and rsync")
     parser.add_argument("-d", "--delete", action="store_true",
                         help="Clean OUTPUT directory after finishing uploading.")
+    parser.add_argument("-f", "--force-push-noarch-package", action="store_true",
+                        help="Force Push noarch packahe.")
     args = parser.parse_args()
     if not args.username or not args.branch:
         print("[!!!] Please specify a LDAP user and specify a branch!")
@@ -28,8 +30,10 @@ def main():
         exit(1)
     delete_junk()
     mkdir_on_repo(args.username, args.branch, args.component, args.verbose)
-    rsync_non_noarch_file(args.username, args.branch, args.component, args.verbos)
-    rsync_noarch_file(args.username, args.branch, args.component, args.verbos)
+    rsync_non_noarch_file(args.username, args.branch,
+                          args.component, args.verbos)
+    rsync_noarch_file(args.username, args.branch, args.component,
+                      args.verbos, args.force_push_noarch_package)
     if args.delete:
         clean_output_directory()
     exit(0)
@@ -58,9 +62,11 @@ def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=Fa
     subprocess.check_call(command)
 
 
-def rsync_noarch_file(username: str, branch: str, component: str, verbose=False):
+def rsync_noarch_file(username: str, branch: str, component: str, verbose=False, force_push_noarch_package=False):
     command = ["rsync", "--ignore-existing", "-rlOvhze", "ssh", "--progress", "--include",
                "*_noarch.deb", ".", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
+    if force_push_noarch_package:
+        del command[1]
     if verbose:
         command.insert(1, "-v")
     subprocess.check_call(command)
