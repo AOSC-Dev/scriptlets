@@ -31,9 +31,9 @@ def main():
     delete_junk()
     mkdir_on_repo(args.username, args.branch, args.component, args.verbose)
     rsync_non_noarch_file(args.username, args.branch,
-                          args.component, args.verbos)
+                          args.component, args.verbose)
     rsync_noarch_file(args.username, args.branch, args.component,
-                      args.verbos, args.force_push_noarch_package)
+                      args.verbose, args.force_push_noarch_package)
     if args.delete:
         clean_output_directory()
     exit(0)
