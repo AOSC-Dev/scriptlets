@@ -56,7 +56,7 @@ def mkdir_on_repo(username: str, branch: str, component: str, verbose=False):
 
 def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=False):
     command = ["rsync", "-rlOvhze", "ssh", "--progress", "--exclude",
-               "*_noarch.deb", "./debs/*", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
+               "*_noarch.deb", "./debs/", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
     if verbose:
         command.insert(1, "-v")
     subprocess.check_call(command)
@@ -64,7 +64,7 @@ def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=Fa
 
 def rsync_noarch_file(username: str, branch: str, component: str, verbose=False, force_push_noarch_package=False):
     command = ["rsync", "--ignore-existing", "-rlOvhze", "ssh", "--progress", "--include",
-               "*_noarch.deb", "./debs/*", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
+               "*_noarch.deb", "./debs/", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
     if force_push_noarch_package:
         del command[1]
     if verbose:
