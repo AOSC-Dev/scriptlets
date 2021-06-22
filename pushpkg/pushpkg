@@ -1,79 +1,82 @@
-#!/bin/bash -e
+#!/usr/bin/python3
 
-ARGS_SSH=""
-ARGS_RSYNC=""
-AFTER_CLEAN_DIRECTORY=0
+import argparse
+import os
+import subprocess
 
-while getopts "hvd" arg ; do
-    case $arg in
-        h)
-            _help_message
-            exit 0
-            ;;
-        v)
-            ARGS_SSH+=" -vvv"
-            ARGS_RSYNC+=" -v"
-            ;;
-        d)
-            AFTER_CLEAN_DIRECTORY=1
-            ;;
-        ?)
-            _help_message
-            exit 1
-            ;;
-    esac
-done
 
-shift "$((OPTIND-1))"
+def main():
+    parser = argparse.ArgumentParser(
+        description="pushpkg, push aosc package to repo.aosc.io")
+    parser.add_argument("username", metavar="USERNAME", type=str,
+                        help="Your LDAP username.")
+    parser.add_argument("branch", metavar="BRANCH", type=str,
+                        help="AOSC OS update branch (stable, stable-proposed, testing, etc.)")
+    parser.add_argument("component", metavar="COMPONENT",
+                        type=str, help="(Optional) Repository component (main, bsp-sunxi, etc.) Falls back to \"main\" if not specified.", nargs="?", default="main")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Enable verbose logging for ssh and rsync")
+    parser.add_argument("-d", "--delete", action="store_true",
+                        help="Clean OUTPUT directory after finishing uploading.")
+    parser.add_argument("-f", "--force-push-noarch-package", action="store_true",
+                        help="Force Push noarch packahe.")
+    args = parser.parse_args()
+    if not args.username or not args.branch:
+        print("[!!!] Please specify a LDAP user and specify a branch!")
+        parser.print_help()
+        exit(1)
+    if not os.path.isdir("./debs"):
+        print("[!!!] debs is not a directory!")
+        exit(1)
+    delete_junk()
+    mkdir_on_repo(args.username, args.branch, args.component, args.verbose)
+    rsync_non_noarch_file(args.username, args.branch,
+                          args.component, args.verbose)
+    rsync_noarch_file(args.username, args.branch, args.component,
+                      args.verbose, args.force_push_noarch_package)
+    if args.delete:
+        clean_output_directory()
+    exit(0)
 
-USERNAME="$1"
-BRANCH="$2"
-COMPOMENT="${3:-main}"
 
-_help_message() {
-    cat << EOF
-Usage:
+def delete_junk():
+    debs_path = os.path.abspath("./debs")
+    command = ["sudo", "find", debs_path, "-maxdepth",
+               "1", "-type", "f", "-delete", "-print"]
+    subprocess.check_call(command)
 
-	pushpkg <LDAP_USERNAME> <BRANCH> [COMPONENT]
 
-	LDAP_USERNAME: Your LDAP username.
-	BRANCH: AOSC OS update branch (stable, stable-proposed, testing, etc.)
+def mkdir_on_repo(username: str, branch: str, component: str, verbose=False):
+    command = ["ssh", "{}@repo.aosc.io".format(
+        username), "mkdir", "-p", "/mirror/debs/pool/{}/{}".format(branch, component)]
+    if verbose:
+        command.insert(1, "-vvv")
+    subprocess.check_call(command)
 
-Options:
 
-    [COMPONENT]: (Optional) Repository component (main, bsp-sunxi, etc.)
-                 Falls back to \"main\" if not specified.
-    -d: Clean OUTPUT directory after finishing uploading.
-    -v: Enable verbose logging for ssh and rsync
+def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=False):
+    command = ["rsync", "-rlOvhze", "ssh", "--progress", "--exclude",
+               "*_noarch.deb", "./debs/", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
+    if verbose:
+        command.insert(1, "-v")
+    subprocess.check_call(command)
 
-EOF
-}
 
-if [[ -z $USERNAME || -z $BRANCH ]]; then
-    echo "[!!!] Please specify a LDAP user and specify a branch!"
-    _help_message
-    exit 1
-fi
+def rsync_noarch_file(username: str, branch: str, component: str, verbose=False, force_push_noarch_package=False):
+    command = ["rsync", "--ignore-existing", "-rlOvhze", "ssh", "--progress", "--include",
+               "*_noarch.deb", "./debs/", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
+    if force_push_noarch_package:
+        del command[1]
+    if verbose:
+        command.insert(1, "-v")
+    subprocess.check_call(command)
 
-if [[ ! -d 'debs' ]]; then
-    echo "[!!!] debs is not a directory."
-    exit 1
-fi
 
-OUTPUT_DIR="$(readlink -f debs)"
-sudo find "${OUTPUT_DIR}" -maxdepth 1 -type f -delete -print
+def clean_output_directory():
+    print("Cleaning debs...")
+    debs_path = os.path.abspath("./debs")
+    subprocess.check_call(["sudo", "rm", "-rv", debs_path])
 
-ssh ${ARGS_SSH} "${USERNAME}@repo.aosc.io" "mkdir -p '/mirror/debs/pool/${BRANCH}/${COMPOMENT}'"
 
-pushd "$OUTPUT_DIR"
-NOARCH_LIST_PATH="$(mktemp)"
-find . -name '*_noarch.deb' -print > "$NOARCH_LIST_PATH"
-rsync ${ARGS_RSYNC} -rlOvhze ssh --progress --exclude-from "$NOARCH_LIST_PATH" . "${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}/"
-rsync ${ARGS_RSYNC} -rlOvhze ssh --progress --ignore-existing --files-from "$NOARCH_LIST_PATH" . "${USERNAME}@repo.aosc.io:/mirror/debs/pool/${BRANCH}/${COMPOMENT}/"
-popd
-
-rm -v "$NOARCH_LIST_PATH"
-
-if [ $AFTER_CLEAN_DIRECTORY = 1 ]; then
-    sudo rm -rv "$OUTPUT_DIR"
-fi
+if __name__ == "__main__":
+    main()
