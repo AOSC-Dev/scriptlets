@@ -18,19 +18,20 @@ def main():
     srcs = []
     print("Github:")
     package_path = search_package_path(package_name)
-    with open("{}/spec".format(package_path)) as f:
-        spec = f.readlines()
-        for i in spec:
-            if "SRCS=" in i:
-                if len(i.split("::")) > 1:
-                    srcs += i.split("::")[1][:-1].split('\n')
-                else:
-                    srcs += i[:-1].split('\n')
-    for i in srcs:
-        if "github" in i:
-            split_i = i.split("/")
-            print(
-                "CHKUPDATE: github::repo={}/{}".format(split_i[3], split_i[4]))
+    if package_path:
+        with open("{}/spec".format(package_path)) as f:
+            spec = f.readlines()
+            for i in spec:
+                if "SRCS=" in i:
+                    if len(i.split("::")) > 1:
+                        srcs += i.split("::")[1][:-1].split('\n')
+                    else:
+                        srcs += i[:-1].split('\n')
+        for i in srcs:
+            if "github" in i:
+                split_i = i.split("/")
+                print(
+                    "CHKUPDATE: github::repo={}/{}".format(split_i[3], split_i[4]))
 
 
 def search_package_path(package_name: str) -> str:
