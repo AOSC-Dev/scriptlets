@@ -3,35 +3,51 @@
 import requests
 import sys
 import os
+import argparse
 
 
 def main():
-    package_name = sys.argv[1]
-    r = requests.get(
-        "https://release-monitoring.org/api/projects/?pattern={}".format(package_name))
-    d = r.json()
-    print("Anitya:")
-    if d["total"] != 0:
-        for i in d["projects"]:
-            print("Name: {}, Lastest Version: {}, CHKUPDATE: anitya::id={}".format(
-                i["name"], i["stable_versions"][0] if len(i["stable_versions"]) != 0 else "None", i["id"]))
-    srcs = []
-    print("Github:")
-    package_path = search_package_path(package_name)
-    if package_path:
-        with open("{}/spec".format(package_path)) as f:
-            spec = f.readlines()
-            for i in spec:
-                if "SRCS=" in i:
-                    if len(i.split("::")) > 1:
-                        srcs += i.split("::")[1][:-1].split('\n')
-                    else:
-                        srcs += i[:-1].split('\n')
-        for i in srcs:
-            if "github" in i:
-                split_i = i.split("/")
-                print(
-                    "CHKUPDATE: github::repo={}/{}".format(split_i[3], split_i[4]))
+    parser = argparse.ArgumentParser(
+        description="mkchkupdate")
+    parser.add_argument("-t", "--total", type=int,
+                        default=5, help="total lint")
+    parser.add_argument('packages', metavar='N', type=str, nargs='+',
+                        help='packages')
+    args = parser.parse_args()
+    packages = args.packages
+    total = args.total
+    for i in packages:
+        print("{}:".format(i))
+        r = requests.get(
+            "https://release-monitoring.org/api/projects/?pattern={}".format(i))
+        d = r.json()
+        print("Anitya:")
+        index = 0
+        if d["total"] != 0:
+            for j in d["projects"]:
+                if index <= total:
+                    print("Name: {}, Lastest Version: {}, CHKUPDATE: anitya::id={}, Homepage: {}".format(
+                        j["name"], j["stable_versions"][0] if len(j["stable_versions"]) != 0 else "None", j["id"], j["homepage"] if j["homepage"] else "None"))
+                    index += 1
+                else:
+                    break
+        srcs = []
+        print("Github:")
+        package_path = search_package_path(i)
+        if package_path:
+            with open("{}/spec".format(package_path)) as f:
+                spec = f.readlines()
+                for j in spec:
+                    if "SRCS=" in j:
+                        if len(j.split("::")) > 1:
+                            srcs += j.split("::")[1][:-1].split('\n')
+                        else:
+                            srcs += j[:-1].split('\n')
+            for k in srcs:
+                if "github" in k:
+                    split_k = k.split("/")
+                    print(
+                        "CHKUPDATE: github::repo={}/{}".format(split_k[3], split_k[4]))
 
 
 def search_package_path(package_name: str) -> str:
