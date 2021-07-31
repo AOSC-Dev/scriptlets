@@ -4,14 +4,17 @@ import requests
 import sys
 import os
 
+
 def main():
     package_name = sys.argv[1]
-    r = requests.get("https://release-monitoring.org/api/projects/?pattern={}".format(package_name))
+    r = requests.get(
+        "https://release-monitoring.org/api/projects/?pattern={}".format(package_name))
     d = r.json()
     print("Anitya:")
     if d["total"] != 0:
         for i in d["projects"]:
-            print("Name: {}, Lastest Version: {}, CHKUPDATE: anitya::id={}".format(i["name"], i["stable_versions"][0] if len(i["stable_versions"]) != 0 else "None", i["id"]))
+            print("Name: {}, Lastest Version: {}, CHKUPDATE: anitya::id={}".format(
+                i["name"], i["stable_versions"][0] if len(i["stable_versions"]) != 0 else "None", i["id"]))
     srcs = []
     print("Github:")
     package_path = search_package_path(package_name)
@@ -20,13 +23,14 @@ def main():
         for i in spec:
             if "SRCS=" in i:
                 if len(i.split("::")) > 1:
-                        srcs += i.split("::")[1][:-1].split('\n')
+                    srcs += i.split("::")[1][:-1].split('\n')
                 else:
-                        srcs += i[:-1].split('\n')
+                    srcs += i[:-1].split('\n')
     for i in srcs:
         if "github" in i:
             split_i = i.split("/")
-            print("CHKUPDATE: github::repo={}/{}".format(split_i[3], split_i[4]))
+            print(
+                "CHKUPDATE: github::repo={}/{}".format(split_i[3], split_i[4]))
 
 
 def search_package_path(package_name: str) -> str:
@@ -54,6 +58,7 @@ def search_package_path(package_name: str) -> str:
                                             for line in defines:
                                                 if "PKGNAME=" in line and package_name in line:
                                                     return package.path[2:]
+
 
 if __name__ == "__main__":
     main()
