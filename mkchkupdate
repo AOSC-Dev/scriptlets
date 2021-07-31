@@ -22,7 +22,7 @@ def main():
             "https://release-monitoring.org/api/projects/?pattern={}".format(i))
         d = r.json()
         print("Anitya:")
-        index = 0
+        index = 1
         if d["total"] != 0:
             for j in d["projects"]:
                 if index <= total:
