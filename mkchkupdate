@@ -25,8 +25,8 @@ def main():
         if d["total"] != 0:
             for j in d["projects"]:
                 if index <= total:
-                    print("Name: {}, Lastest Version: {}, CHKUPDATE: anitya::id={}, Homepage: {}".format(
-                        j["name"], j["stable_versions"][0] if len(j["stable_versions"]) != 0 else "None", j["id"], j["homepage"] if j["homepage"] else "None"))
+                    print("Name: {}, Lastest Version: {}, Homepage: {}, CHKUPDATE: anitya::id={}".format(
+                        j["name"], j["id"], j["homepage"] if j["homepage"] else "None", j["stable_versions"][0] if len(j["stable_versions"]) != 0 else "None"))
                     index += 1
                 else:
                     break
