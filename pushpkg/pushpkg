@@ -3,6 +3,7 @@
 import argparse
 import os
 import subprocess
+import sys
 
 
 def main():
@@ -24,19 +25,20 @@ def main():
     if not args.username or not args.branch:
         print("[!!!] Please specify a LDAP user and specify a branch!")
         parser.print_help()
-        exit(1)
+        sys.exit(1)
     if not os.path.isdir("./debs"):
         print("[!!!] debs is not a directory!")
-        exit(1)
+        sys.exit(1)
     delete_junk()
-    mkdir_on_repo(args.username, args.branch, args.component, args.verbose)
     rsync_non_noarch_file(args.username, args.branch,
                           args.component, args.verbose)
-    rsync_noarch_file(args.username, args.branch, args.component,
-                      args.verbose, args.force_push_noarch_package)
+    if have_noarch_files():
+        rsync_noarch_file(args.username, args.branch, args.component,
+                          args.verbose, args.force_push_noarch_package)
     if args.delete:
         clean_output_directory()
-    exit(0)
+    mark_upload_done(args.username, args.verbose)
+    return
 
 
 def delete_junk():
@@ -46,25 +48,29 @@ def delete_junk():
     subprocess.check_call(command)
 
 
-def mkdir_on_repo(username: str, branch: str, component: str, verbose=False):
-    command = ["ssh", "{}@repo.aosc.io".format(
-        username), "mkdir", "-p", "/mirror/debs/pool/{}/{}".format(branch, component)]
-    if verbose:
-        command.insert(1, "-vvv")
-    subprocess.check_call(command)
-
-
-def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=False):
-    command = ["rsync", "-rlOvhze", "ssh", "--progress", "--exclude",
-               "*_noarch.deb", "./debs/", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
+def mark_upload_done(username: str, verbose=False):
+    command = ["ssh", f"{username}@repo.aosc.io", "touch", "/mirror/.updated"]
     if verbose:
         command.insert(1, "-v")
     subprocess.check_call(command)
 
 
+def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=False):
+    command = ["rsync", "-rlOvhzPe", "ssh", "--exclude", "--mkpath",
+               "*_noarch.deb", "./debs/", f"{username}@repo.aosc.io:/mirror/debs/pool/{branch}/{component}/"]
+    if verbose:
+        command.insert(1, "-v")
+    subprocess.check_call(command)
+
+
+def have_noarch_files() -> bool:
+    output = subprocess.check_output(["find", "./debs", "-name", "*_noarch.deb"])
+    return len(output) < 1
+
+
 def rsync_noarch_file(username: str, branch: str, component: str, verbose=False, force_push_noarch_package=False):
-    command = ["rsync", "--ignore-existing", "-rlOvhze", "ssh", "--progress", "--include",
-               "*_noarch.deb", "./debs/", "{}@repo.aosc.io:/mirror/debs/pool/{}/{}/".format(username, branch, component)]
+    command = ["rsync", "--ignore-existing", "-rlOvhzPe", "ssh", "--include",
+               "*_noarch.deb", "./debs/", f"{username}@repo.aosc.io:/mirror/debs/pool/{branch}/{component}/"]
     if force_push_noarch_package:
         del command[1]
     if verbose:
