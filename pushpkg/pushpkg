@@ -56,7 +56,7 @@ def mark_upload_done(username: str, verbose=False):
 
 
 def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=False):
-    command = ["rsync", "-rlOvhzPe", "ssh", "--exclude", "--mkpath",
+    command = ["rsync", "-rlOvhzPe", "ssh", "--mkpath", "--exclude",
                "*_noarch.deb", "./debs/", f"{username}@repo.aosc.io:/mirror/debs/pool/{branch}/{component}/"]
     if verbose:
         command.insert(1, "-v")
