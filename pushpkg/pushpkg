@@ -20,9 +20,14 @@ def main():
     parser.add_argument("-d", "--delete", action="store_true",
                         help="Clean OUTPUT directory after finishing uploading.")
     parser.add_argument("-f", "--force-push-noarch-package", action="store_true",
-                        help="Force Push noarch packahe.")
+                        help="Force Push noarch package.")
+    parser.add_argument("-r", "--retro", action="store_true",
+                        help="Push to AOSC OS/R repo")
     args = parser.parse_args()
-    if not args.username or not args.branch:
+    username = args.username
+    branch = args.branch
+    component = args.component
+    if not username or not branch:
         print("[!!!] Please specify a LDAP user and specify a branch!")
         parser.print_help()
         sys.exit(1)
@@ -30,18 +35,24 @@ def main():
         print("[!!!] debs is not a directory!")
         sys.exit(1)
     delete_junk()
-    rsync_non_noarch_file(args.username, args.branch,
-                          args.component, args.verbose)
+    upload_url = make_upload_url(username, branch, component, args.retro)
+    rsync_non_noarch_file(upload_url, args.verbose)
     if have_noarch_files():
-        rsync_noarch_file(args.username, args.branch, args.component,
-                          args.verbose, args.force_push_noarch_package)
+        rsync_noarch_file(upload_url, args.verbose,
+                          args.force_push_noarch_package)
+    else:
+        print("[+] There is no noarch packages. Skipping.")
     if args.delete:
         clean_output_directory()
-    mark_upload_done(args.username, args.verbose)
-    return
+    mark_upload_done(username, args.verbose)
+
+
+def make_upload_url(username: str, branch: str, component: str, is_retro: bool) -> str:
+    return f"{username}@repo.aosc.io:/mirror/debs{'-retro' if is_retro else ''}/pool/{branch}/{component}/"
 
 
 def delete_junk():
+    print("[+] Removing loose files ...")
     debs_path = os.path.abspath("./debs")
     command = ["sudo", "find", debs_path, "-maxdepth",
                "1", "-type", "f", "-delete", "-print"]
@@ -55,22 +66,25 @@ def mark_upload_done(username: str, verbose=False):
     subprocess.check_call(command)
 
 
-def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=False):
+def rsync_non_noarch_file(upload_url: str, verbose=False):
+    print("[+] Uploading arch-specific packages ...")
     command = ["rsync", "-rlOvhzPe", "ssh", "--mkpath", "--exclude",
-               "*_noarch.deb", "./debs/", f"{username}@repo.aosc.io:/mirror/debs/pool/{branch}/{component}/"]
+               "*_noarch.deb", "./debs/", upload_url]
     if verbose:
         command.insert(1, "-v")
     subprocess.check_call(command)
 
 
 def have_noarch_files() -> bool:
-    output = subprocess.check_output(["find", "./debs", "-name", "*_noarch.deb"])
+    output = subprocess.check_output(
+        ["find", "./debs", "-name", "*_noarch.deb"])
     return len(output) > 1
 
 
-def rsync_noarch_file(username: str, branch: str, component: str, verbose=False, force_push_noarch_package=False):
+def rsync_noarch_file(upload_url: str, verbose=False, force_push_noarch_package=False):
+    print("[+] Uploading noarch packages ...")
     command = ["rsync", "--ignore-existing", "-rlOvhzPe", "ssh", "--include",
-               "*_noarch.deb", "./debs/", f"{username}@repo.aosc.io:/mirror/debs/pool/{branch}/{component}/"]
+               "*_noarch.deb", "./debs/", upload_url]
     if force_push_noarch_package:
         del command[1]
     if verbose:
@@ -79,7 +93,7 @@ def rsync_noarch_file(username: str, branch: str, component: str, verbose=False,
 
 
 def clean_output_directory():
-    print("Cleaning debs...")
+    print("[+] Cleaning debs ...")
     debs_path = os.path.abspath("./debs")
     subprocess.check_call(["sudo", "rm", "-rv", debs_path])
 
