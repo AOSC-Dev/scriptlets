@@ -65,7 +65,7 @@ def rsync_non_noarch_file(username: str, branch: str, component: str, verbose=Fa
 
 def have_noarch_files() -> bool:
     output = subprocess.check_output(["find", "./debs", "-name", "*_noarch.deb"])
-    return len(output) < 1
+    return len(output) > 1
 
 
 def rsync_noarch_file(username: str, branch: str, component: str, verbose=False, force_push_noarch_package=False):
