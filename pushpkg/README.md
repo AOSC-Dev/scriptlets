@@ -20,9 +20,3 @@ Options:
     -d: pushpkg after clean OUTPUT directory
     -v: ssh and rsync verbose
 ```
-
-One-liner usage:
-
-```shell
-curl -sSL https://github.com/AOSC-Dev/scriptlets/raw/master/pushpkg/pushpkg | bash /dev/stdin -u LDAP_USERNAME -b BRANCH -c [COMPONENT]
-```
