@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# This bash script only works on LoongArch64 buildbot Yukoaioi, since I specify the local path where I built debs.
+# After running this stage1 script, chroot into TARGETDIR then use APT locally to install other essential packages. (TODO)
+
+# current temp stage2
+
+# first run a simple flat local APT repository, like
+# python3 -m http.server -d /clfs-test-bak/clfs-test/debs
+# edit $TARGETDIR/etc/apt/sources.list to add the following line
+# deb [allow-insecure=yes] http://0.0.0.0:8000 ./
+
 export TARGETDIR=/mnt/aosc
 mkdir -pv /tmp/work
 
