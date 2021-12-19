@@ -35,7 +35,7 @@ def main():
     print(f'Found {len(branches_lookup)} branches.')
     closed = []
     for topic in topics:
-        if topic == 'stable' or topic.startswith('.'):
+        if topic == 'stable' or topic.startswith('.') or topic.startswith('bsp-'):
             continue
         topic_path = root_path.joinpath(topic)
         if not topic_path.is_dir():
