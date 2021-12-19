@@ -4,18 +4,23 @@ import os
 import shutil
 from pathlib import PosixPath
 
-GITHUB_QUERY_FRAG = """_%s: pullRequests(first: 1, states: %s, baseRefName: "stable", headRefName: "%s", orderBy: {field: CREATED_AT, direction: DESC}) {
-      nodes {
-        number
-        headRefName
-      }
-    }
-"""
-GITHUB_QUERY = """{
-  repository(name: "aosc-os-abbs", owner: "AOSC-dev") {
-    %s
-  }
-}"""
+
+def collect_all_branches():
+    page = 1
+    branches = []
+    while True:
+        print(f'Reading page {page} ...')
+        resp = requests.get(f'https://api.github.com/repos/AOSC-Dev/aosc-os-abbs/branches?per_page=100&page={page}', headers={
+            'Authorization': f'bearer {os.environ["GITHUB_TOKEN"]}'})
+        resp.raise_for_status()
+        b = resp.json()
+        branches.extend(b)
+        if len(b) == 100:
+            page += 1
+            continue
+        else:
+            break
+    return branches
 
 
 def main():
@@ -23,30 +28,25 @@ def main():
     if not root_path.is_dir():
         raise Exception(f'{root_path} is not a directory')
     topics = os.listdir(root_path)
-    fragments = []
-    index = 0
-    for topic in topics:
-        if topic == 'stable':
-            continue
-        if not root_path.joinpath(topic).is_dir():
-            continue
-        index += 1
-        fragments.append(GITHUB_QUERY_FRAG % (index, 'MERGED', topic))
-        index += 1
-        fragments.append(GITHUB_QUERY_FRAG % (index, 'CLOSED', topic))
-    query = GITHUB_QUERY % ('\n'.join(fragments))
-    resp = requests.post('https://api.github.com/graphql', json={'query': query}, headers={
-        'Authorization': 'bearer %s' % os.environ['GITHUB_TOKEN']})
-    resp.raise_for_status()
-    github_pr = resp.json()['data']['repository']
+    print('Reading topics list ...')
+    branches = collect_all_branches()
+    print('Done reading topics list.')
+    branches_lookup = set([i['name'] for i in branches])
+    print(f'Found {len(branches_lookup)} branches.')
     closed = []
-    for pr in github_pr.values():
-        pr = pr['nodes']
-        if not pr:
+    for topic in topics:
+        if topic == 'stable' or topic.startswith('.'):
             continue
-        pr = pr[0]
-        print(f'#{pr["number"]}: closed {pr["headRefName"]}')
-        closed.append(pr['headRefName'])
+        topic_path = root_path.joinpath(topic)
+        if not topic_path.is_dir():
+            continue
+        if topic not in branches_lookup:
+            if not topic_path.joinpath('DEPRECATED').is_file():
+                with open(topic_path.joinpath('DEPRECATED'), 'wb') as f:
+                    f.write(b'WARNING: This topic will be deleted.\n')
+                print(f'Warning marker set: {topic}')
+                continue
+            closed.append(topic)
     for pr in closed:
         shutil.rmtree(root_path.joinpath(pr))
         print('Deleted: {}'.format(pr))
