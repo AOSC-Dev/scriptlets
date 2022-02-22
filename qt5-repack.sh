@@ -1,11 +1,11 @@
 #!/bin/bash -e
 
-KDE_QT_COMMIT='1c0fe9ba9f230ba5c81473f0ff19574c3722e004'
+#KDE_QT_COMMIT
 KDE_QT_REPO='https://invent.kde.org/qt/qt/qt5'
 KDE_QT_BANNED_MODULES=('qtcanvas3d' 'qtfeedback' 'qtpim' 'qtqa' 'qtrepotools' 'qtsystems' 'qtdocgallery')
-CATAPULT_COMMIT='5eedfe23148a234211ba477f76fc2ea2e8529189'
+#CATAPULT_COMMIT
 CATAPULT_REPO='https://chromium.googlesource.com/catapult'
-QTWK_VERSION='5.212.0'
+QTWK_VERSION="${QTWK_VERSION:5.212.0}"
 QTWK_URL="https://github.com/qtwebkit/qtwebkit/releases/download/qtwebkit-${QTWK_VERSION}-alpha4/qtwebkit-${QTWK_VERSION}-alpha4.tar.xz"
 GIT_ARCHIVE_BIN="git-archive-all"
 
@@ -36,6 +36,9 @@ fetch_catapult() {
     cd catapult
     git archive --format tar -o ../catapult.tmp.tar "${CATAPULT_COMMIT}"
 }
+
+[ -z "${KDE_QT_COMMIT}" ] && echo "KDE_QT_COMMIT not set. Go to https://invent.kde.org/qt/qt/qt5/-/tree/kde/5.15 to figure it out." && exit 1
+[ -z "${CATAPULT_COMMIT}" ] && echo "CATAPULT_COMMIT not set. Go to https://chromium.googlesource.com/catapult/+/refs/heads/main to figure it out." && exit 1
 
 echo '[+] Installing git-archive-all utility ...'
 pip3 install --user --upgrade git-archive-all
