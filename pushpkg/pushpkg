@@ -12,9 +12,12 @@ def main():
     parser.add_argument("username", metavar="USERNAME", type=str,
                         help="Your LDAP username.")
     parser.add_argument("branch", metavar="BRANCH", type=str,
-                        help="AOSC OS update branch (stable, stable-proposed, testing, etc.)")
+                        help="AOSC OS update branch (stable, stable-proposed, testing, etc.)", nargs="?")
     parser.add_argument("component", metavar="COMPONENT",
-                        type=str, help="(Optional) Repository component (main, bsp-sunxi, etc.) Falls back to \"main\" if not specified.", nargs="?", default="main")
+                        type=str,
+                        help="(Optional) Repository component (main, bsp-sunxi, etc.) "
+                             "Falls back to \"main\" if not specified.",
+                        nargs="?", default="main")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Enable verbose logging for ssh and rsync")
     parser.add_argument("-d", "--delete", action="store_true",
@@ -27,10 +30,12 @@ def main():
     username = args.username
     branch = args.branch
     component = args.component
-    if not username or not branch:
-        print("[!!!] Please specify a LDAP user and specify a branch!")
+    if not username:
+        print("[!!!] Please specify a LDAP user!")
         parser.print_help()
         sys.exit(1)
+    if not branch:
+        branch = get_branch()
     if not os.path.isdir("./debs"):
         print("[!!!] debs is not a directory!")
         sys.exit(1)
@@ -45,6 +50,22 @@ def main():
     if args.delete:
         clean_output_directory()
     mark_upload_done(username, args.verbose)
+
+
+def get_branch() -> str:
+    branch = os.path.split(os.getcwd())[1].lstrip("OUTPUT-")
+
+    def ask_branch() -> str:
+        choice = input("[+] Detected branch " + branch + ". Use this one? [Y/n] ").lower()
+        if choice == "n":
+            return input("[+] Please fill in the branch: ")
+        elif choice == "y" or choice == "":
+            return branch
+        else:
+            print("[!!!] Unexpected response!")
+            ask_branch()
+
+    return ask_branch()
 
 
 def make_upload_url(username: str, branch: str, component: str, is_retro: bool) -> str:
