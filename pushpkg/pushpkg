@@ -31,9 +31,11 @@ def main():
     branch = args.branch
     component = args.component
     if not username:
-        username = detect_and_ask("username", subprocess.check_output(["whoami"], shell=True).strip().decode())
+        username = detect_and_ask("username", subprocess.check_output(
+            ["whoami"], shell=True).strip().decode())
     if not branch:
-        branch = detect_and_ask("branch", os.path.split(os.getcwd())[1].lstrip("OUTPUT-"))
+        branch = detect_and_ask("branch", os.path.split(
+            os.getcwd())[1].lstrip("OUTPUT-"))
     if not os.path.isdir("./debs"):
         print("[!!!] debs is not a directory!")
         sys.exit(1)
@@ -51,7 +53,8 @@ def main():
 
 
 def detect_and_ask(type: str, arg: str) -> str:
-    choice = input(f"[+] Detected {type} " + arg + ". Use this one? [Y/n] ").lower()
+    choice = input(f"[+] Detected {type} " +
+                   arg + ". Use this one? [Y/n] ").lower()
     if choice == "n":
         return input(f"[+] Please fill in the {type}: ")
     elif choice == "y" or choice == "":
