@@ -10,14 +10,14 @@ Usage:
 }
 
 if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        _help_message
-        exit 0
+	_help_message
+	exit 0
 fi
 
 if [ -z "$1" ]; then
-        printf "[!!!] Please specify a Linux distribution.\n\n"
-        _help_message
-        exit 1
+	printf "[!!!] Please specify a Linux distribution.\n\n"
+	_help_message
+	exit 1
 elif [ -z "$2" ]; then
 	printf "[!!!] Please specify a patch series file.\n\n"
 	_help_message
