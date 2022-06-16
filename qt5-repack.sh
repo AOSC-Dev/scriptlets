@@ -28,10 +28,11 @@ clone_kde_qt() {
     echo '[+] Checking out QtWebEngine ...'
     git -C qtwebengine checkout -f tags/v"${QTWEBENGINE_VERSION}"-lts
     echo '[+] Committing changes ...'
-    git add .gitmodule qtwebengine
+    git add .gitmodules qtwebengine
     git config --local user.name 'Bot'
     git config --local user.email 'bot@aosc.io'
     git commit -m "[AUTO] Sync QtWebEngine to ${QTWEBENGINE_VERSION}"
+    git submodule update --recursive --init
     echo '[+] Archiving Git repository using git-archive-all ...'
     "${GIT_ARCHIVE_BIN}" --force-submodules ../qt-5.tmp.tar
     cd ..
@@ -45,7 +46,7 @@ fetch_webkit() {
 
 [[ x"${QT_VERSION}" = "x" ]] && echo "QT_VERSION not set." && exit 1
 [[ x"${QTWEBENGINE_VERSION}" = "x" ]] && echo "QTWEBENGINE_VERSION not set." && exit 1
-[[ x"${QTWK_VERSION}-alpha4" = "x" ]] && echo "QTWK_VERSION not set. Go to https://github.com/qtwebkit/qtwebkit/tags to figure it out." && exit 1
+[[ x"${QTWK_VERSION}" = "x" ]] && echo "QTWK_VERSION not set. Go to https://github.com/qtwebkit/qtwebkit/tags to figure it out." && exit 1
 [ -z "${KDE_QT_COMMIT}" ] && echo "KDE_QT_COMMIT not set. Go to https://invent.kde.org/qt/qt/qt5/-/tree/kde/5.15 to figure it out." && exit 1
 
 echo '[+] Performing pre-repack clean-up ...'
@@ -85,9 +86,7 @@ mv -v "qtwebkit-${QTWK_VERSION}-alpha4" ./qt-5/qtwebkit
 echo '[+] Running syncqt.pl for module headers ...'
 cd qt-5
 for i in $(find . -maxdepth 1 -type d -name "qt*"); do
-    cd "$i"
-    ../qtbase/bin/syncqt.pl -version "${QT_VERSION}" || true
-    cd ..
+    ./qtbase/bin/syncqt.pl -version "${QT_VERSION}" "$i" || true
 done
 cd ..
 
