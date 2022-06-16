@@ -27,6 +27,11 @@ clone_kde_qt() {
     git submodule update --recursive --init --jobs 4
     echo '[+] Checking out QtWebEngine ...'
     git -C qtwebengine checkout -f tags/v"${QTWEBENGINE_VERSION}"-lts
+    echo '[+] Committing changes ...'
+    git add .gitmodule qtwebengine
+    git config --local user.name 'Bot'
+    git config --local user.email 'bot@aosc.io'
+    git commit -m "[AUTO] Sync QtWebEngine to ${QTWEBENGINE_VERSION}"
     echo '[+] Archiving Git repository using git-archive-all ...'
     "${GIT_ARCHIVE_BIN}" --force-submodules ../qt-5.tmp.tar
     cd ..
