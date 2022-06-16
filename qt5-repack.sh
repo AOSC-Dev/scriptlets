@@ -2,7 +2,7 @@
 
 # KDE Qt source repository.
 KDE_QT_REPO='https://invent.kde.org/qt/qt/qt5'
-KDE_QT_BANNED_MODULES=('qtcanvas3d' 'qtfeedback' 'qtpim' 'qtqa' 'qtrepotools' 'qtsystems' 'qtdocgallery' 'qtwebengine')
+KDE_QT_BANNED_MODULES=('qtcanvas3d' 'qtfeedback' 'qtpim' 'qtqa' 'qtrepotools' 'qtsystems' 'qtdocgallery')
 # Catapult source repository.
 CATAPULT_REPO='https://chromium.googlesource.com/catapult'
 # QtWebEngine source repository.
@@ -21,24 +21,14 @@ clone_kde_qt() {
     date --date "@${COMMIT_TIMESTAMP}" '+%Y%m%d' > ../COMMIT-DATE
     echo '[+] Unregistering unwanted Qt components ...'
     git rm -rf "${KDE_QT_BANNED_MODULES[@]}"
+    echo '[+] Replacing QtWebEngine submodule ...'
+    git submodule set-url qtwebengine "${QTWEBENGINE_REPO}"
     echo '[+] Cloning Qt components ...'
     git submodule update --recursive --init --jobs 4
+    echo '[+] Checking out QtWebEngine ...'
+    git -C qtwebengine checkout -f tags/v"${QTWEBENGINE_VERSION}"-lts
     echo '[+] Archiving Git repository using git-archive-all ...'
     "${GIT_ARCHIVE_BIN}" --force-submodules ../qt-5.tmp.tar
-    cd ..
-}
-
-clone_qtwebengine() {
-    echo 'Cloning QtWebEngine (official) sources ...'
-    git clone "${QTWEBENGINE_REPO}" 'qtwebengine'
-    cd qtwebengine
-    git checkout tags/v"${QTWEBENGINE_VERSION}"-lts
-    local COMMIT_TIMESTAMP="$(git log -1 --format=%ct)"
-    date --date "@${COMMIT_TIMESTAMP}" '+%Y%m%d' > ../QTWEBENGINE_COMMIT-DATE
-    echo '[+] Cloning 3rd party components ...'
-    git submodule update --recursive --init --jobs 4
-    echo '[+] Archiving Git repository using git-archive-all ...'
-    "${GIT_ARCHIVE_BIN}" --force-submodules ../qtwebengine.tmp.tar
     cd ..
 }
 
@@ -70,13 +60,10 @@ pip3 install --user --upgrade git-archive-all
 clone_kde_qt &
 KDE_QT_JOB="$!"
 
-clone_qtwebengine &
-QTWEBENGINE_JOB="$!"
-
 fetch_webkit &
 WEBKIT_JOB="$!"
 
-wait $KDE_QT_JOB $QTWEBENGINE_JOB $WEBKIT_JOB
+wait $KDE_QT_JOB $WEBKIT_JOB
 
 echo '[+] Cleaning up downloaded files ...'
 rm -rf 'catapult' 'kde-qt5' "qtwebkit-${QTWK_VERSION}-alpha4.tar.xz"
@@ -86,11 +73,6 @@ tar xf qt-5.tmp.tar
 KDE_QT_COMMIT_DATE="$(cat COMMIT-DATE)" && rm -v COMMIT-DATE
 mv -v qt-5.tmp qt-5
 
-echo '[+] Assembling Qt 5 repack (QtWebEngine) ...'
-tar xf qtwebengine.tmp.tar
-QTWEBENGINE_COMMIT_DATE="$(cat QTWEBENGINE_COMMIT-DATE)" && rm -v QTWEBENGINE_COMMIT-DATE
-mv -v qtwebengine qt-5/qtwebengine
-
 echo '[+] Assembling Qt 5 repack (QtWebKit) ...'
 rm -v "qtwebkit-${QTWK_VERSION}-alpha4"/WebKit.pro
 mv -v "qtwebkit-${QTWK_VERSION}-alpha4" ./qt-5/qtwebkit
@@ -98,7 +80,7 @@ mv -v "qtwebkit-${QTWK_VERSION}-alpha4" ./qt-5/qtwebkit
 echo '[+] Running syncqt.pl for module headers ...'
 cd qt-5
 for i in $(find . -maxdepth 1 -type d -name "qt*"); do
-    cd $i
+    cd "$i"
     ../qtbase/bin/syncqt.pl -version "${QT_VERSION}" || true
     cd ..
 done
@@ -109,6 +91,6 @@ tar cf "qt-5-${QT_VERSION}+webengine${QTWEBENGINE_VERSION}+wk${QTWK_VERSION}+kde
 xz -9e -T0 "qt-5-${QT_VERSION}+webengine${QTWEBENGINE_VERSION}+wk${QTWK_VERSION}+kde${KDE_QT_COMMIT_DATE}.tar"
 
 echo '[+] Cleaning up ...'
-rm -rf qt-5 qt-5.tmp.tar qtwebengine.tmp.tar
+rm -rf qt-5 qt-5.tmp.tar
 
 echo '[+] Done!'
