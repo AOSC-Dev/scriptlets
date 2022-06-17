@@ -86,7 +86,9 @@ mv -v "qtwebkit-${QTWK_VERSION}-alpha4" ./qt-5/qtwebkit
 echo '[+] Running syncqt.pl for module headers ...'
 cd qt-5
 for i in $(find . -maxdepth 1 -type d -name "qt*"); do
-    ./qtbase/bin/syncqt.pl -version "${QT_VERSION}" "$i" || true
+    cd "$i"
+    ../qtbase/bin/syncqt.pl -version "${QT_VERSION}" || true
+    cd ..
 done
 cd ..
 
