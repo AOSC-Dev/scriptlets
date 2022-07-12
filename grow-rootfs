@@ -69,7 +69,6 @@ else
 		fi
 		echo "[+] Okay, your root partition is the last partition. Proceeding."
 		# Resize partition
-		PARTNUM=$(lsblk -no MAJ:MIN "/dev/$ROOTPART" | cut -d':' -f2)
 		# Call sfdisk to grow this partition, gently
 		# It will not touch anything else.
 		echo ', +' | sfdisk -N $PARTNUM $ROOTDEV
