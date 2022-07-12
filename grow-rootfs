@@ -16,7 +16,9 @@ if [ "$(mount | grep 'on / type' | grep nfs)" ]; then
 	exit 1
 fi
 
-if [ -t 0 -a -t 1 ]; then
+if [ "$1" == "yes-please" ]; then
+	echo "[+] You said yes, so we just go on."
+elif [ -t 0 -a -t 1 ]; then
 	read -p "Are you sure (y/N)? " ANS
 	if ! echo "$ANS" | grep -q '[yY]' ; then
 		echo "[+] Aborting."
@@ -44,7 +46,7 @@ if [ -e "/.resize-partition" ]; then
 	exit 0	
 else
 	ROOTPART=$(lsblk -lno NAME,MOUNTPOINT | sed -E 's/\s+/,/g' | grep ',/$' | cut -d',' -f1)
-	ROOTDEV=$(lsblk -lno PKNAME /dev/$ROOTPART)
+	ROOTDEV="/dev/$(lsblk -lno PKNAME /dev/$ROOTPART)"
 	ROOTTYPE=$(lsblk -lno FSTYPE /dev/$ROOTPART)
 	# Get current partition number
 	# PARTNUM=$(lsblk -lno "MAJ:MIN" /dev/$ROOTPART | cut -d':' -f2) - It is not reliable
@@ -63,7 +65,7 @@ else
 		# Get partitions
 		PARTS=($(lsblk -o NAME -ln $ROOTDEV))
 		echo "[+] Last partition of this disk: ${PARTS[-1]}"
-		if [ "$ROOTDEV" != "${PARTS[-1]}" ]; then
+		if [ "$ROOTPART" != "${PARTS[-1]}" ]; then
 			echo "[-] Jesus, don't even think about it; Your partition is not the last partition!"
 			exit 1
 		fi
@@ -71,7 +73,7 @@ else
 		# Resize partition
 		# Call sfdisk to grow this partition, gently
 		# It will not touch anything else.
-		echo ', +' | sfdisk -N $PARTNUM $ROOTDEV
+		echo ', +' | sfdisk --force -N $PARTNUM $ROOTDEV
 		# Okay, we are ready to grow
 		touch "/.resize-partition"
 		echo "ROOTDEV=$ROOTDEV" >> /.resize-partition
