@@ -52,16 +52,16 @@ def main():
     mark_upload_done(username, args.verbose)
 
 
-def detect_and_ask(t: str, arg: str) -> str:
-    choice = input(f"[+] Detected {t} " +
-                   arg + ". Use this one? [Y/n] ").lower()
+def detect_and_ask(type_name: str, arg: str) -> str:
+    choice = input(f"[+] Detected {type_name} {arg}. Use this one? [Y/n] ").lower()
+
     if choice == "n":
-        return input(f"[+] Please fill in the {t}: ")
-    elif choice == "y" or choice == "":
+        return input(f"[+] Please fill in the {type_name}: ")
+    if choice in ("y", ""):
         return arg
-    else:
-        print("[!!!] Unexpected response!")
-        detect_and_ask(t, arg)
+
+    print("[!!!] Unexpected response!")
+    return detect_and_ask(type_name, arg)
 
 
 def make_upload_url(username: str, branch: str, component: str, is_retro: bool) -> str:
