@@ -60,7 +60,7 @@ def search_package_path(package_name: str) -> str:
 def write_string_to_file(package_name: str, rebuilds_path_list_str: str) -> None:
     with open('groups/{}-rebuilds'.format(package_name), "w") as f:
         f.write(rebuilds_path_list_str)
-        print('groups/{}-rebuils created!'.format(package_name))
+        print('groups/{}-rebuilds created!'.format(package_name))
 
 
 def main():
