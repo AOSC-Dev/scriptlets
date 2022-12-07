@@ -1,12 +1,12 @@
 #!/bin/bash
 
 for i in $@; do
-	if [ -e */$i/spec ]; then
+	if [ -e */${i##*/}/spec ]; then
 		unset VER REL
-		source */$i/spec
-		printf -- "- [x] \`$i\` v$VER-$REL\n"
+		source */${i##*/}/spec
+		printf -- "- [x] \`${i##*/}\` v$VER-$REL\n"
 	else
-		echo "Warning: package $i is not found in the source tree."
+		echo "Warning: package ${i##*/} is not found in the source tree."
 	fi
 done | \
 	sed -e 's/-$//' | sort
