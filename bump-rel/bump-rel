@@ -1,42 +1,27 @@
 #!/bin/bash
+# A simple script to "bump REL".
+# Do whatever the fuck you want with this script.
+#
+# Usage: bump-rel path/to/spec/file
 
-_help_message() {
-	printf "\
-Useage:
-	bump-rel PACKAGE_GROUPS
-
-	- PACKAGE_GROUPS: Path to the list of packages.
-"
-}
-
-if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-	_help_message
-	exit 0
-fi
-
+# Gotta know how to use it eh?
 if [ -z "$1" ]; then
-	printf "[!!!] Please specify a package group.\n"
-	_help_message
-	exit 1
+   echo "Usage: bump-rel path/to/spec/file"
+   exit 1
 fi
 
-# Main stuff
-for i in $(cat $1); do
-	if ! [[ -e $i ]]; then
-		echo [!!!] Package $i does not exists!
-		continue
-	fi
+# Just to be sure.
+unset REL
 
-	OLD_REL=$(grep "^REL" $i/spec | cut -d "=" -f2)
-
-	if ! [[ "$OLD_REL" =~ ^[0-9]+$ ]]; then
-		OLD_REL=0
-		REL=1
-		sed -i "/^VER/a REL=1" $i/spec
-	else
-		REL=$((OLD_REL+1))
-		sed -i "/REL/ s/$OLD_REL/$REL/" $i/spec
-	fi
-
-	printf "[iii] update $i's REL from $OLD_REL to $REL.\n"
-done
+# If a file does not contain line containing REL= on the line beginning,
+# then append 'REL=1'; otherwise, bump REL.
+#
+# FIXME: does not give two f*cks about duplicate REL=, not pretty, but
+# practically, nothing can really go wrong - or can it?
+if ! $(grep '^REL=' "$1" > /dev/null); then
+   echo 'REL=1' >> "$1"
+else
+   source "$PWD"/"$1"
+   NEWREL=$(($REL + 1))
+   sed -e "s|REL=.*|REL=$NEWREL|g" -i "$1"
+fi
