@@ -32,7 +32,7 @@ def main():
     component = args.component
     if not username:
         username = detect_and_ask("username", subprocess.check_output(
-            ["whoami"], shell=True).strip().decode())
+            ["test -e ../.pushpkg_username && cat ../.pushpkg_username || whoami"], shell=True).strip().decode())
     if not branch:
         branch = detect_and_ask("branch", os.path.split(
             os.getcwd())[1].lstrip("OUTPUT-"))
