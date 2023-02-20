@@ -57,11 +57,8 @@ def main():
     if not username:
         username = detect_and_ask(
             "username",
-            subprocess.check_output(
-                os.environ.get("PUSHPKG_USERNAME") or ["whoami"], shell=True
-            )
-            .strip()
-            .decode(),
+            os.environ.get("PUSHPKG_USERNAME")
+            or subprocess.check_output(["whoami"], shell=True).strip().decode(),
         )
     if not branch:
         branch = detect_and_ask(
