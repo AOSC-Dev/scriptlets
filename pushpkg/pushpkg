@@ -8,35 +8,65 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(
-        description="pushpkg, push aosc package to repo.aosc.io")
-    parser.add_argument("username", metavar="USERNAME", type=str,
-                        help="Your LDAP username.", nargs="?")
-    parser.add_argument("branch", metavar="BRANCH", type=str,
-                        help="AOSC OS update branch (stable, stable-proposed, testing, etc.)", nargs="?")
-    parser.add_argument("component", metavar="COMPONENT",
-                        type=str,
-                        help="(Optional) Repository component (main, bsp-sunxi, etc.) "
-                             "Falls back to \"main\" if not specified.",
-                        nargs="?", default="main")
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="Enable verbose logging for ssh and rsync")
-    parser.add_argument("-d", "--delete", action="store_true",
-                        help="Clean OUTPUT directory after finishing uploading.")
-    parser.add_argument("-f", "--force-push-noarch-package", action="store_true",
-                        help="Force Push noarch package.")
-    parser.add_argument("-r", "--retro", action="store_true",
-                        help="Push to AOSC OS/Retro repo")
+        description="pushpkg, push aosc package to repo.aosc.io"
+    )
+    parser.add_argument(
+        "username", metavar="USERNAME", type=str, help="Your LDAP username.", nargs="?"
+    )
+    parser.add_argument(
+        "branch",
+        metavar="BRANCH",
+        type=str,
+        help="AOSC OS update branch (stable, stable-proposed, testing, etc.)",
+        nargs="?",
+    )
+    parser.add_argument(
+        "component",
+        metavar="COMPONENT",
+        type=str,
+        help="(Optional) Repository component (main, bsp-sunxi, etc.) "
+        'Falls back to "main" if not specified.',
+        nargs="?",
+        default="main",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging for ssh and rsync",
+    )
+    parser.add_argument(
+        "-d",
+        "--delete",
+        action="store_true",
+        help="Clean OUTPUT directory after finishing uploading.",
+    )
+    parser.add_argument(
+        "-f",
+        "--force-push-noarch-package",
+        action="store_true",
+        help="Force Push noarch package.",
+    )
+    parser.add_argument(
+        "-r", "--retro", action="store_true", help="Push to AOSC OS/Retro repo"
+    )
     args = parser.parse_args()
     username = args.username
     branch = args.branch
     component = args.component
     if not username:
-        username = detect_and_ask("username", subprocess.check_output(
-            os.environ.get("PUSHPKG_USERNAME") or
-            ["whoami"], shell=True).strip().decode())
+        username = detect_and_ask(
+            "username",
+            subprocess.check_output(
+                os.environ.get("PUSHPKG_USERNAME") or ["whoami"], shell=True
+            )
+            .strip()
+            .decode(),
+        )
     if not branch:
-        branch = detect_and_ask("branch", os.path.split(
-            os.getcwd())[1].lstrip("OUTPUT-"))
+        branch = detect_and_ask(
+            "branch", os.path.split(os.getcwd())[1].lstrip("OUTPUT-")
+        )
     if not os.path.isdir("./debs"):
         print("[!!!] debs is not a directory!")
         sys.exit(1)
@@ -44,8 +74,7 @@ def main():
     upload_url = make_upload_url(username, branch, component, args.retro)
     rsync_non_noarch_file(upload_url, args.verbose)
     if have_noarch_files():
-        rsync_noarch_file(upload_url, args.verbose,
-                          args.force_push_noarch_package)
+        rsync_noarch_file(upload_url, args.verbose, args.force_push_noarch_package)
     else:
         print("[+] There is no noarch packages. Skipping.")
     if args.delete:
@@ -72,8 +101,17 @@ def make_upload_url(username: str, branch: str, component: str, is_retro: bool) 
 def delete_junk():
     print("[+] Removing loose files ...")
     debs_path = os.path.abspath("./debs")
-    command = ["sudo", "find", debs_path, "-maxdepth",
-               "1", "-type", "f", "-delete", "-print"]
+    command = [
+        "sudo",
+        "find",
+        debs_path,
+        "-maxdepth",
+        "1",
+        "-type",
+        "f",
+        "-delete",
+        "-print",
+    ]
     subprocess.check_call(command)
 
 
@@ -86,23 +124,38 @@ def mark_upload_done(username: str, verbose=False):
 
 def rsync_non_noarch_file(upload_url: str, verbose=False):
     print("[+] Uploading arch-specific packages ...")
-    command = ["rsync", "-rlOvhzPe", "ssh", "--mkpath", "--exclude",
-               "*_noarch.deb", "./debs/", upload_url]
+    command = [
+        "rsync",
+        "-rlOvhzPe",
+        "ssh",
+        "--mkpath",
+        "--exclude",
+        "*_noarch.deb",
+        "./debs/",
+        upload_url,
+    ]
     if verbose:
         command.insert(1, "-v")
     subprocess.check_call(command)
 
 
 def have_noarch_files() -> bool:
-    output = subprocess.check_output(
-        ["find", "./debs", "-name", "*_noarch.deb"])
+    output = subprocess.check_output(["find", "./debs", "-name", "*_noarch.deb"])
     return len(output) > 1
 
 
 def rsync_noarch_file(upload_url: str, verbose=False, force_push_noarch_package=False):
     print("[+] Uploading noarch packages ...")
-    command = ["rsync", "--ignore-existing", "-rlOvhzPe", "ssh", "--include",
-               "*_noarch.deb", "./debs/", upload_url]
+    command = [
+        "rsync",
+        "--ignore-existing",
+        "-rlOvhzPe",
+        "ssh",
+        "--include",
+        "*_noarch.deb",
+        "./debs/",
+        upload_url,
+    ]
     if force_push_noarch_package:
         del command[1]
     if verbose:
