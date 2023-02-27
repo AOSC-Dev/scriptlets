@@ -2,7 +2,7 @@
 set -e
 
 # Basic definitions.
-BENCHVER=20230112
+BENCHVER=20230227
 LLVMVER=15.0.7
 LLVMURL="https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVMVER/llvm-project-$LLVMVER.src.tar.xz"
 LLVMDIR="$(basename $LLVMURL | rev | cut -f3- -d'.' | rev)"
@@ -61,6 +61,9 @@ mkdir -p "$LLVMDIR"/llvm/build || \
     aberr "Failed to create build directory: $?."
 cd "$LLVMDIR"/llvm/build || \
     aberr "Failed to swtich to build directory: $?."
+# Set LANG to C to make gcc faster (a little bit)
+export LC_ALL=C
+export LANG=C
 
 abinfo "(5/6) Preparing to benchmark Buildbot: Configuring LLVM (version $LLVMVER) ..."
 cmake .. \
@@ -252,3 +255,4 @@ cmake .. \
 abinfo "(6/6) Benchmarking Buildbot: Building LLVM ..."
 time ninja 2>> benchmark.log || \
     aberr "Failed to build LLVM: $?."
+unset LC_ALL LANG
