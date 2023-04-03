@@ -6,17 +6,20 @@ A simple wrapper script for the standard AOSC OS package upload procedure.
 You should run this script inside a directory which contains a `debs` directory.
 
 ```
-Usage:
+usage: pushpkg [-h] [-v] [-d] [-f] [-r] [USERNAME] [BRANCH] [COMPONENT]
 
-        pushpkg -u LDAP_USERNAME -b BRANCH -c [COMPONENT]
+pushpkg, push aosc package to repo.aosc.io
 
-        -u LDAP_USERNAME: Your LDAP username.
-        -b BRANCH: AOSC OS update branch (stable, stable-proposed, testing, etc.)
+positional arguments:
+  USERNAME              Your LDAP username.
+  BRANCH                AOSC OS update branch (stable, stable-proposed, testing, etc.)
+  COMPONENT             (Optional) Repository component (main, bsp-sunxi, etc.) Falls back to "main" if not specified.
 
-Options:
-
-    -c [COMPONENT]: (Optional) Repository component (main, bsp-sunxi, etc.)
-                       Falls back to "main" if not specified.
-    -d: pushpkg after clean OUTPUT directory
-    -v: ssh and rsync verbose
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Enable verbose logging for ssh and rsync
+  -d, --delete          Clean OUTPUT directory after finishing uploading.
+  -f, --force-push-noarch-package
+                        Force Push noarch package.
+  -r, --retro           Push to AOSC OS/Retro repo
 ```
