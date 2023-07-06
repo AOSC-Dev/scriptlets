@@ -8,7 +8,7 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(
-        description="pushpkg, push aosc package to repo.aosc.io"
+        description="pushpkg, push aosc package to repo.aosc.io or mirrors"
     )
     parser.add_argument(
         "username", metavar="USERNAME", type=str, help="Your LDAP username.", nargs="?"
@@ -51,6 +51,15 @@ def main():
         "-r", "--retro", action="store_true", help="Push to AOSC OS/Retro repo"
     )
     parser.add_argument(
+        "-6", "--ipv6", action="store_true", help="Use IPv6 addresses only"
+    )
+    parser.add_argument(
+        "-4", "--ipv4", action="store_true", help="Use IPv4 addresses only"
+    )
+    parser.add_argument(
+        "--host", type=str, nargs='?', default='repo.aosc.io', help="Specify the rsync host to push packages, defaults to repo.aosc.io"
+    )
+    parser.add_argument(
         "-i", "--identity-file", type=str, help="SSH identity file", default=None
     )
     args = parser.parse_args()
@@ -71,10 +80,10 @@ def main():
         print("[!!!] debs is not a directory!")
         sys.exit(1)
     delete_junk()
-    upload_url = make_upload_url(username, branch, component, args.retro)
-    rsync_non_noarch_file(upload_url, branch, args.identity_file, args.verbose)
+    upload_url = make_upload_url(username, branch, component, args.retro, args.host)
+    rsync_non_noarch_file(upload_url, branch, args.identity_file, args.verbose, args.ipv6, args.ipv4)
     if have_noarch_files():
-        rsync_noarch_file(upload_url, branch, args.identity_file, args.verbose, args.force_push_noarch_package)
+        rsync_noarch_file(upload_url, branch, args.identity_file, args.verbose, args.force_push_noarch_package, args.ipv6, args.ipv4)
     else:
         print("[+] There is no noarch packages. Skipping.")
     if args.delete:
@@ -94,8 +103,8 @@ def detect_and_ask(type_name: str, arg: str) -> str:
     return detect_and_ask(type_name, arg)
 
 
-def make_upload_url(username: str, branch: str, component: str, is_retro: bool) -> str:
-    return f"{username}@repo.aosc.io:/mirror/debs{'-retro' if is_retro else ''}/pool/{branch}/{component}/"
+def make_upload_url(username: str, branch: str, component: str, is_retro: bool, host: str) -> str:
+    return f"{username}@{host}:/mirror/debs{'-retro' if is_retro else ''}/pool/{branch}/{component}/"
 
 
 def delete_junk():
@@ -125,7 +134,7 @@ def mark_upload_done(username: str, identity_file=None, verbose=False):
     subprocess.check_call(command)
 
 
-def rsync_non_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False):
+def rsync_non_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, ipv6=False, ipv4=False):
     print("[+] Uploading arch-specific packages ...")
     command = [
         "rsync",
@@ -139,6 +148,10 @@ def rsync_non_noarch_file(upload_url: str, branch: str, identity_file=None, verb
     ]
     if verbose:
         command.insert(1, "-v")
+    if ipv6:
+        command.insert(1, "-6")
+    if ipv4:
+        command.insert(1, "-4")
 
     if identity_file:
         command[2] = f"ssh -i {identity_file}"
@@ -154,7 +167,7 @@ def have_noarch_files() -> bool:
     return len(output) > 1
 
 
-def rsync_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, force_push_noarch_package=False):
+def rsync_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, force_push_noarch_package=False, ipv6=False, ipv4=False):
     print("[+] Uploading noarch packages ...")
     flags = []
 
@@ -177,6 +190,10 @@ def rsync_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=
         upload_url,
     ]
 
+    if ipv6:
+        command.insert(1, "-6")
+    if ipv4:
+        command.insert(1, "-4")
     subprocess.check_call(command)
 
 

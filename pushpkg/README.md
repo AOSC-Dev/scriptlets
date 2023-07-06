@@ -6,9 +6,9 @@ A simple wrapper script for the standard AOSC OS package upload procedure.
 You should run this script inside a directory which contains a `debs` directory.
 
 ```
-usage: pushpkg [-h] [-v] [-d] [-f] [-r] [-i IDENTITY_FILE] [USERNAME] [BRANCH] [COMPONENT]
+usage: pushpkg [-h] [-v] [-d] [-f] [-r] [-6] [-4] [--host [HOST]] [-i IDENTITY_FILE] [USERNAME] [BRANCH] [COMPONENT]
 
-pushpkg, push aosc package to repo.aosc.io
+pushpkg, push aosc package to repo.aosc.io or mirrors
 
 positional arguments:
   USERNAME              Your LDAP username.
@@ -22,6 +22,9 @@ options:
   -f, --force-push-noarch-package
                         Force Push noarch package.
   -r, --retro           Push to AOSC OS/Retro repo
+  -6, --ipv6            Use IPv6 addresses only
+  -4, --ipv4            Use IPv4 addresses only
+  --host [HOST]         Specify the rsync host to push packages, defaults to repo.aosc.io
   -i IDENTITY_FILE, --identity-file IDENTITY_FILE
                         SSH identity file
 ```

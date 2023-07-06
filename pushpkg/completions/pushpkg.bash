@@ -17,7 +17,7 @@ _pushpkg() {
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     components="main bsp-sunxi bsp-rk bsp-rpi bsp-qcom"
-    options="-v --verbose -d --delete -f --force-push-noarch-package -r --retro -h --help -i --identity-file"
+    options="-v --verbose -d --delete -f --force-push-noarch-package -r --retro -h --help -6 --ipv6 -4 --ipv4 --host -i --identity-file"
     if [[ ${cur} == -* || ${COMP_CWORD} -ge 4 ]] ; then
         COMPREPLY=( $(compgen -W "${options}" -- "${cur}") )
         return 0
