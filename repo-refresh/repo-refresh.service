@@ -1,0 +1,7 @@
+[Unit]
+Description=Check for package update
+ConditionACPower=true
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/repo-refresh.sh
