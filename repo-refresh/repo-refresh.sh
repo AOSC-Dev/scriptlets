@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if command -v oma > /dev/null; then
-    oma refresh --no-progress
+    oma refresh
 else
     apt update
 fi
