@@ -10,7 +10,7 @@ Usage
 Run the benchmark by executing the script:
 
 ```
-./buildbot-benchmark.bash
+bash ./buildbot-benchmark.bash
 ```
 
 Collect "Real" time output from `time` output:
