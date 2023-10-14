@@ -55,8 +55,11 @@ for (( i=0 ; i < ${#OPT32LIBS[@]} ; i++ )) ; do
 		echo "" >> $TMPDIFFSET
 	fi
 done
+if [ "${#DIFFERS[@]}" == "0" ] ; then
+	echo -e "\033[2KDone! You are good, no inconsistencies so far."
+	exit 0
+fi
 echo -e "\033[2KDone! Showing results in a pager."
-
 TMPFILE=$(mktemp)
 echo -e "\033[47;104mComparision Summary\t\t\033[0m\n" > $TMPFILE
 echo -e "- \033[1m${#OPT32LIBS[@]}\033[0m packages in total." >> $TMPFILE
