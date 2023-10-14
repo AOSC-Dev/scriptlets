@@ -11,6 +11,7 @@ TREEDIR=$PWD
 
 cd $PWD/runtime-optenv32
 
+echo "Hold on tight, this may take some time..."
 for dir in `find -maxdepth 1 -type d -printf '%P\n' | grep -- +32` ; do
 	pkgname=${dir/+32/}
 	echo -ne "\033[2K[${#OPT32LIBS[@]}] Finding $pkgname... \r"
@@ -54,14 +55,16 @@ for (( i=0 ; i < ${#OPT32LIBS[@]} ; i++ )) ; do
 		echo "" >> $TMPDIFFSET
 	fi
 done
+echo -e "\033[2KDone! Showing results in a pager."
 
 TMPFILE=$(mktemp)
 echo -e "\033[47;104mComparision Summary\t\t\033[0m\n" > $TMPFILE
 echo -e "- \033[1m${#OPT32LIBS[@]}\033[0m packages in total." >> $TMPFILE
-echo -e "- \033[1m${#DIFFERS[@]}\033[0m of them has inconsistent versions across main tree and optenv32." >> $TMPFILE
+echo -e "- \033[1m${#DIFFERS[@]}\033[0m of them has inconsistent versions across the main tree and optenv32." >> $TMPFILE
 
 cat >> $TMPFILE << EOF
-
+Here's the list of packages with inconsistent versions.
+After the list is the whole diff of spec files between the main tree and optenv32.
 Version inconsistencies:
 
  Package Name		| Version in the main tree	 | Version in optenv32	  
@@ -82,6 +85,8 @@ CHOICE=r
 while [ "$CHOICE" == "r" ] ; do
 
 less -R -P "Use arrow keys to navigate, [q] to quit when done." $TMPFILE
+
+echo -e "\nReviewing\n=========\n"
 echo "You can review it again by answering 'r'."
 read -p "Or, choose whether to sync the versions now [Y/n/r]: " ANS
 [ ! "$ANS" ] && ANS=y
@@ -100,6 +105,9 @@ case "$ANS" in
 		;;
 	*)
 		echo "Doing nothing."
+		cp "$TMPDIFFSET1" $TREEDIR/optenv32.patch
+		echo "The patch is saved to $TREEDIR/optenv32.patch."
+		echo "Remember to strip out the REL if you want to apply the patch."
 		CHOICE=
 		;;
 esac
