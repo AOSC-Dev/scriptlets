@@ -50,6 +50,9 @@ def main():
     parser.add_argument(
         "-r", "--retro", action="store_true", help="Push to AOSC OS/Retro repo"
     )
+    parser.add_argument(
+        "-i", "--identity-file", type=str, help="SSH identity file", default=None
+    )
     args = parser.parse_args()
     username = args.username
     branch = args.branch
@@ -69,14 +72,14 @@ def main():
         sys.exit(1)
     delete_junk()
     upload_url = make_upload_url(username, branch, component, args.retro)
-    rsync_non_noarch_file(upload_url, args.verbose)
+    rsync_non_noarch_file(upload_url, args.identity_file, args.verbose)
     if have_noarch_files():
-        rsync_noarch_file(upload_url, args.verbose, args.force_push_noarch_package)
+        rsync_noarch_file(upload_url, args.identity_file, args.verbose, args.force_push_noarch_package)
     else:
         print("[+] There is no noarch packages. Skipping.")
     if args.delete:
         clean_output_directory()
-    mark_upload_done(username, args.verbose)
+    mark_upload_done(username, args.identity_file, args.verbose)
 
 
 def detect_and_ask(type_name: str, arg: str) -> str:
@@ -112,14 +115,17 @@ def delete_junk():
     subprocess.check_call(command)
 
 
-def mark_upload_done(username: str, verbose=False):
+def mark_upload_done(username: str, identity_file=None, verbose=False):
     command = ["ssh", f"{username}@repo.aosc.io", "touch", "/mirror/.updated"]
     if verbose:
         command.insert(1, "-v")
+    if identity_file:
+        command.insert(1, "-i")
+        command.insert(2, identity_file)
     subprocess.check_call(command)
 
 
-def rsync_non_noarch_file(upload_url: str, verbose=False):
+def rsync_non_noarch_file(upload_url: str, identity_file=None, verbose=False):
     print("[+] Uploading arch-specific packages ...")
     command = [
         "rsync",
@@ -133,6 +139,8 @@ def rsync_non_noarch_file(upload_url: str, verbose=False):
     ]
     if verbose:
         command.insert(1, "-v")
+    if identity_file:
+        command[2] = f"ssh -i {identity_file}"
     subprocess.check_call(command)
 
 
@@ -141,7 +149,7 @@ def have_noarch_files() -> bool:
     return len(output) > 1
 
 
-def rsync_noarch_file(upload_url: str, verbose=False, force_push_noarch_package=False):
+def rsync_noarch_file(upload_url: str, identity_file=None, verbose=False, force_push_noarch_package=False):
     print("[+] Uploading noarch packages ...")
     command = [
         "rsync",
@@ -153,6 +161,8 @@ def rsync_noarch_file(upload_url: str, verbose=False, force_push_noarch_package=
         "./debs/",
         upload_url,
     ]
+    if identity_file:
+        command[3] = f"ssh -i {identity_file}"
     if force_push_noarch_package:
         del command[1]
     if verbose:
