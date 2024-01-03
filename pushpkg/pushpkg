@@ -72,9 +72,9 @@ def main():
         sys.exit(1)
     delete_junk()
     upload_url = make_upload_url(username, branch, component, args.retro)
-    rsync_non_noarch_file(upload_url, args.identity_file, args.verbose)
+    rsync_non_noarch_file(upload_url, args.identity_file, args.verbose, branch)
     if have_noarch_files():
-        rsync_noarch_file(upload_url, args.identity_file, args.verbose, args.force_push_noarch_package)
+        rsync_noarch_file(upload_url, args.identity_file, args.verbose, args.force_push_noarch_package, branch)
     else:
         print("[+] There is no noarch packages. Skipping.")
     if args.delete:
@@ -125,7 +125,7 @@ def mark_upload_done(username: str, identity_file=None, verbose=False):
     subprocess.check_call(command)
 
 
-def rsync_non_noarch_file(upload_url: str, identity_file=None, verbose=False):
+def rsync_non_noarch_file(upload_url: str, identity_file=None, verbose=False, branch: str):
     print("[+] Uploading arch-specific packages ...")
     command = [
         "rsync",
@@ -139,8 +139,13 @@ def rsync_non_noarch_file(upload_url: str, identity_file=None, verbose=False):
     ]
     if verbose:
         command.insert(1, "-v")
+
     if identity_file:
         command[2] = f"ssh -i {identity_file}"
+
+    if branch == "stable":
+        command.insert(1, "--ignore-existing")
+
     subprocess.check_call(command)
 
 
@@ -149,7 +154,7 @@ def have_noarch_files() -> bool:
     return len(output) > 1
 
 
-def rsync_noarch_file(upload_url: str, identity_file=None, verbose=False, force_push_noarch_package=False):
+def rsync_noarch_file(upload_url: str, identity_file=None, verbose=False, force_push_noarch_package=False, branch: str):
     print("[+] Uploading noarch packages ...")
     command = [
         "rsync",
@@ -162,10 +167,15 @@ def rsync_noarch_file(upload_url: str, identity_file=None, verbose=False, force_
     ]
     if identity_file:
         command[3] = f"ssh -i {identity_file}"
+
     if force_push_noarch_package:
         del command[1]
+
     if verbose:
         command.insert(1, "-v")
+
+    if branch == "stable":
+        command.insert(1, "--ignore-existing")
     subprocess.check_call(command)
 
 
