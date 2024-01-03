@@ -72,9 +72,9 @@ def main():
         sys.exit(1)
     delete_junk()
     upload_url = make_upload_url(username, branch, component, args.retro)
-    rsync_non_noarch_file(upload_url, args.identity_file, args.verbose, branch)
+    rsync_non_noarch_file(upload_url, branch, args.identity_file, args.verbose)
     if have_noarch_files():
-        rsync_noarch_file(upload_url, args.identity_file, args.verbose, args.force_push_noarch_package, branch)
+        rsync_noarch_file(upload_url, branch, args.identity_file, args.verbose, args.force_push_noarch_package)
     else:
         print("[+] There is no noarch packages. Skipping.")
     if args.delete:
@@ -125,7 +125,7 @@ def mark_upload_done(username: str, identity_file=None, verbose=False):
     subprocess.check_call(command)
 
 
-def rsync_non_noarch_file(upload_url: str, identity_file=None, verbose=False, branch: str):
+def rsync_non_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False):
     print("[+] Uploading arch-specific packages ...")
     command = [
         "rsync",
@@ -154,7 +154,7 @@ def have_noarch_files() -> bool:
     return len(output) > 1
 
 
-def rsync_noarch_file(upload_url: str, identity_file=None, verbose=False, force_push_noarch_package=False, branch: str):
+def rsync_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, force_push_noarch_package=False):
     print("[+] Uploading noarch packages ...")
     command = [
         "rsync",
