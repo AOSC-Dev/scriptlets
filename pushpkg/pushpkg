@@ -153,7 +153,6 @@ def rsync_noarch_file(upload_url: str, identity_file=None, verbose=False, force_
     print("[+] Uploading noarch packages ...")
     command = [
         "rsync",
-        "--ignore-existing",
         "-rlOvhzPe",
         "ssh",
         "--include",
