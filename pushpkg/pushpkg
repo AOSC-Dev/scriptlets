@@ -156,26 +156,27 @@ def have_noarch_files() -> bool:
 
 def rsync_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, force_push_noarch_package=False):
     print("[+] Uploading noarch packages ...")
+    flags = []
+
+    if identity_file:
+        flags.extend(["-e", f"ssh -i {identity_file}"])
+
+    if not force_push_noarch_package or branch == "stable":
+        flags.append("--ignore-existing")
+
+    if verbose:
+        flags.append("-v")
+
     command = [
         "rsync",
-        "-rlOvhzPe",
-        "ssh",
+        *flags,
+        "-rlOhzP",
         "--include",
         "*_noarch.deb",
         "./debs/",
         upload_url,
     ]
-    if identity_file:
-        command[3] = f"ssh -i {identity_file}"
 
-    if force_push_noarch_package:
-        del command[1]
-
-    if verbose:
-        command.insert(1, "-v")
-
-    if branch == "stable":
-        command.insert(1, "--ignore-existing")
     subprocess.check_call(command)
 
 
