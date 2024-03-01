@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [[ $# != 1 ]]; then 
+    echo "Usage: sz [NAME]"
+    exit 1
+fi
+
+zellij a -c $1
