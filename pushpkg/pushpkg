@@ -88,7 +88,7 @@ def main():
         print("[+] There is no noarch packages. Skipping.")
     if args.delete:
         clean_output_directory()
-    mark_upload_done(username, args.identity_file, args.verbose)
+    mark_upload_done(username, args.host, args.identity_file, args.verbose)
 
 
 def detect_and_ask(type_name: str, arg: str) -> str:
@@ -124,8 +124,8 @@ def delete_junk():
     subprocess.check_call(command)
 
 
-def mark_upload_done(username: str, identity_file=None, verbose=False):
-    command = ["ssh", f"{username}@repo.aosc.io", "touch", "/mirror/.updated"]
+def mark_upload_done(username: str, host: str, identity_file=None, verbose=False):
+    command = ["ssh", f"{username}@{host}", "touch", "/mirror/.updated"]
     if verbose:
         command.insert(1, "-v")
     if identity_file:
