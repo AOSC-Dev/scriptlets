@@ -54,7 +54,7 @@ case $1 in
 		;;
 	loongson3)
 		CHOST="mips64el-aosc-linux-gnuabi64"
-		RUSTFLAGS="${RUSTFLAGS} -Clink-args=-fuse-ld=lld"
+		RUSTFLAGS="${RUSTFLAGS} -Clink-args=-fuse-ld=bfd"
 		;;
 	loongarch64)
 		CHOST="loongarch64-aosc-linux-gnu"
@@ -68,7 +68,7 @@ case $1 in
 		;;
 	mips64r6el)
 		CHOST="mipsisa64r6el-aosc-linux-gnuabi64"
-		RUSTFLAGS="${RUSTFLAGS} -Clink-args=-fuse-ld=gold"
+		RUSTFLAGS="${RUSTFLAGS} -Clink-args=-fuse-ld=bfd"
 		;;
 	powerpc)
 		CHOST="powerpc-aosc-linux-gnu"
