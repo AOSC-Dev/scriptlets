@@ -62,6 +62,9 @@ def main():
     parser.add_argument(
         "-i", "--identity-file", type=str, help="SSH identity file", default=None
     )
+    parser.add_argument(
+        "--allow-marking-upload-done-to-fail", action="store_true", help="Allow marking upload as done to fail"
+    )
     args = parser.parse_args()
     username = args.username
     branch = args.branch
@@ -88,7 +91,7 @@ def main():
         print("[+] There is no noarch packages. Skipping.")
     if args.delete:
         clean_output_directory()
-    mark_upload_done(username, args.host, args.identity_file, args.verbose)
+    mark_upload_done(username, args.host, args.identity_file, args.verbose, args.allow_marking_upload_done_to_fail)
 
 
 def detect_and_ask(type_name: str, arg: str) -> str:
@@ -124,14 +127,20 @@ def delete_junk():
     subprocess.check_call(command)
 
 
-def mark_upload_done(username: str, host: str, identity_file=None, verbose=False):
+def mark_upload_done(username: str, host: str, identity_file=None, verbose=False, allow_fail=False):
     command = ["ssh", f"{username}@{host}", "touch", "/mirror/.updated"]
     if verbose:
         command.insert(1, "-v")
     if identity_file:
         command.insert(1, "-i")
         command.insert(2, identity_file)
-    subprocess.check_call(command)
+    try:
+        subprocess.check_call(command)
+    except subprocess.CalledProcessError as err:
+        if allow_fail:
+            print('Marking upload done failed with "', err, '", ignored')
+        else:
+            raise err
 
 
 def rsync_non_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, ipv6=False, ipv4=False):
