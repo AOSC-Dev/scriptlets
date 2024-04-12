@@ -57,6 +57,12 @@ def bump_rel(reason, name, spec_path):
     os.system("git add .")
     os.system(f"git commit -m \"{name}: bump REL due to {reason}\"")
 
+def find_ver(pkg):
+    out = subprocess.check_output(["apt", "show", pkg]).decode('utf-8')
+    for line in out.split('\n'):
+        if line.startswith('Version: '):
+            return line.split(' ')[1]
+    return None
 
 
 if __name__ == "__main__":
@@ -65,12 +71,22 @@ if __name__ == "__main__":
                     description='Bump REL of multiple packages in batch')
     parser.add_argument('reason', help='reason to bump REL')
     parser.add_argument('packages_file', help='a file containing the list of packages to bump')
+    parser.add_argument('-d', '--dry-run',
+                    action='store_true')
     args = parser.parse_args()
     pkgs = get_pkgs(args.packages_file)
+    pkgbreak = []
     for pkg in pkgs:
+        version = find_ver(pkg)
+        if version is not None:
+            pkgbreak.append(f'{pkg}<={version}')
         spec = find_spec(pkg)
         if spec is None:
             print(f'Package {pkg} not found, skipped')
         else:
-            bump_rel(args.reason, pkg, spec)
+            if args.dry_run:
+                print(f'Dry-run: bump REL of pkg {pkg}')
+            else:
+                bump_rel(args.reason, pkg, spec)
+    print(' '.join(sorted(pkgbreak)))
 
