@@ -88,5 +88,23 @@ if __name__ == "__main__":
                 print(f'Dry-run: bump REL of pkg {pkg}')
             else:
                 bump_rel(args.reason, pkg, spec)
-    print(' '.join(sorted(pkgbreak)))
+
+    # print PKGBREAK
+    # handle newline automatically
+    curline = "PKGBREAK=\""
+    first = True
+    for pkg in pkgbreak:
+        if len(curline) + len(pkg) > 80:
+            curline += " \\"
+            print(curline)
+            curline = "         "
+            first = True
+        if first:
+            first = False
+            curline += pkg
+        else:
+            curline += " "
+            curline += pkg
+    curline += "\""
+    print(curline)
 
