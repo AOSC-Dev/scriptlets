@@ -71,40 +71,41 @@ if __name__ == "__main__":
                     description='Bump REL of multiple packages in batch')
     parser.add_argument('reason', help='reason to bump REL')
     parser.add_argument('packages_file', help='a file containing the list of packages to bump')
-    parser.add_argument('-d', '--dry-run',
+    parser.add_argument('-b', '--pkg-break',
                     action='store_true')
     args = parser.parse_args()
     pkgs = get_pkgs(args.packages_file)
     pkgbreak = []
     for pkg in pkgs:
-        version = find_ver(pkg)
-        if version is not None:
-            pkgbreak.append(f'{pkg}<={version}')
-        spec = find_spec(pkg)
-        if spec is None:
-            print(f'Package {pkg} not found, skipped')
+        if args.pkg_break:
+            version = find_ver(pkg)
+            if version is not None:
+                pkgbreak.append(f'{pkg}<={version}')
         else:
-            if args.dry_run:
-                print(f'Dry-run: bump REL of pkg {pkg}')
+            spec = find_spec(pkg)
+            if spec is None:
+                print(f'Package {pkg} not found!')
+                os.exit(1)
             else:
                 bump_rel(args.reason, pkg, spec)
 
-    # print PKGBREAK
-    # handle newline automatically
-    curline = "PKGBREAK=\""
-    first = True
-    for pkg in pkgbreak:
-        if len(curline) + len(pkg) > 80:
-            curline += " \\"
-            print(curline)
-            curline = "          "
-            first = True
-        if first:
-            first = False
-            curline += pkg
-        else:
-            curline += " "
-            curline += pkg
-    curline += "\""
-    print(curline)
+    if args.pkg_break:
+        # print PKGBREAK
+        # handle newline automatically
+        curline = "PKGBREAK=\""
+        first = True
+        for pkg in pkgbreak:
+            if len(curline) + len(pkg) > 80:
+                curline += " \\"
+                print(curline)
+                curline = "          "
+                first = True
+            if first:
+                first = False
+                curline += pkg
+            else:
+                curline += " "
+                curline += pkg
+        curline += "\""
+        print(curline)
 
