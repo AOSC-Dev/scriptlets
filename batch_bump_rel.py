@@ -97,7 +97,7 @@ if __name__ == "__main__":
         if len(curline) + len(pkg) > 80:
             curline += " \\"
             print(curline)
-            curline = "         "
+            curline = "          "
             first = True
         if first:
             first = False
