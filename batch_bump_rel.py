@@ -85,7 +85,7 @@ if __name__ == "__main__":
             spec = find_spec(pkg)
             if spec is None:
                 print(f'Package {pkg} not found!')
-                os.exit(1)
+                sys.exit(1)
             else:
                 bump_rel(args.reason, pkg, spec)
 
