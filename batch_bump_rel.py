@@ -16,6 +16,8 @@ def get_pkgs(filename):
         for line in f:
             for part in line.replace(',', ' ').split(' '):
                 part = part.strip()
+                if '/' in part:
+                    part = part.split('/')[-1]
                 if len(part) > 0:
                     pkgs.append(part)
 
@@ -94,7 +96,7 @@ if __name__ == "__main__":
         # handle newline automatically
         curline = "PKGBREAK=\""
         first = True
-        for pkg in pkgbreak:
+        for pkg in sorted(pkgbreak):
             if len(curline) + len(pkg) > 80:
                 curline += " \\"
                 print(curline)
