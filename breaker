@@ -313,7 +313,7 @@ def main():
         ["git", "symbolic-ref", "--short", "HEAD"], encoding="utf-8"
     ).strip()
     print(
-        f"/openpr {args.package}: update to {version};{current_branch};{args.package}:-pkgbreak,{','.join([pkg['name'] for pkg in revdeps])},{args.package}"
+        f"/openpr {args.package}: update to {version};{current_branch};{args.package}:-pkgbreak,{','.join([os.path.basename(pkg['package_path']) for pkg in revdeps])},{args.package}"
     )
 
 
