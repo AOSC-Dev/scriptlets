@@ -160,7 +160,8 @@ def get_revdeps(package_name: str, alldeps: bool, exclude: str) -> list[dict[str
     if exclude is not None:
         revdeps_list = [i for i in revdeps_list if i not in exclude]
 
-    revdeps_list = sorted(revdeps_list)
+    # dedup and sort
+    revdeps_list = sorted(list(set(revdeps_list)))
 
     # get package versions and filter out removed packages
     res = []
@@ -290,6 +291,9 @@ def main():
     )
 
     args = parser.parse_args()
+
+    if args.exclude is not None:
+        logger.info("Excluding packages: %s", " ".join(args.exclude))
 
     if args.debug:
         logger.setLevel(logging.DEBUG)
