@@ -103,7 +103,7 @@ def get_package_version(package_path: str, defines_path: str) -> str:
 
 
 # Get reverse library dependency for specified package
-def get_revdeps(package_name: str) -> list[dict[str, str]]:
+def get_revdeps(package_name: str, alldeps: bool) -> list[dict[str, str]]:
     revdeps_list = []
     try:
         response = requests.get(
@@ -119,6 +119,13 @@ def get_revdeps(package_name: str) -> list[dict[str, str]]:
         ]
         if package_info["sobreaks_circular"] != None:
             revdeps_list += package_info["sobreaks_circular"]
+        if alldeps:
+            revdeps_list += [
+                package["package"]
+                for group in package_info["revdeps"]
+                for package in group["deps"]
+                if package["package"] not in revdeps_list
+            ]
     except:
         logger.warning(
             "Failed to get revdep from packages site, falling back to groups/%s-rebuilds",
@@ -244,6 +251,12 @@ def main():
     )
     parser.add_argument("package", help="Package name to update")
     parser.add_argument(
+        "-a",
+        "--alldeps",
+        action="store_true",
+        help="Include all dependencies, not only library dependencies",
+    )
+    parser.add_argument(
         "-r", "--rebuilds", action="store_true", help="Generate groups/xxx-rebuilds"
     )
     parser.add_argument(
@@ -272,7 +285,7 @@ def main():
     package_path, defines_path = search_package_path(args.package)
     version = get_package_version(package_path, defines_path)
 
-    revdeps = get_revdeps(args.package)
+    revdeps = get_revdeps(args.package, args.alldeps)
 
     if args.rebuilds:
         revdeps_path_list_str = gen_rebuilds_list_string(revdeps)
