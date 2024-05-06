@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# Usage: breaker [package-name] --rebuild --pkgbreak --bump
+# Usage: breaker [package-name] --rebuilds --pkgbreak --bump
 # Steps to bump package with shared library:
 # 1. Update package
-# 2. Run breaker --pkgbreak or breaker --rebuild --pkgbreak
+# 2. Run breaker --pkgbreak or breaker --rebuilds --pkgbreak
 # 3. Copy PKGBREAK to package defines
 # 4. Commit
 # 5. Run breaker --bump
