@@ -272,32 +272,28 @@ def main():
     package_path, defines_path = search_package_path(args.package)
     version = get_package_version(package_path, defines_path)
 
-    revdeps = None
+    revdeps = get_revdeps(args.package)
+
     if args.rebuilds:
-        revdeps = get_revdeps(args.package)
         revdeps_path_list_str = gen_rebuilds_list_string(revdeps)
         write_rebuilds(args.package, revdeps_path_list_str)
-    if args.pkgbreak:
-        if revdeps is None:
-            revdeps = get_revdeps(args.package)
-        pkgbreak = gen_pkgbreak_string(revdeps)
-    if args.bump:
-        if revdeps is None:
-            revdeps = get_revdeps(args.package)
 
+    if args.pkgbreak:
+        pkgbreak = gen_pkgbreak_string(revdeps)
+
+    if args.bump:
         logger.info("Bumping reverse depedencies")
         reason = f"{args.package} update to {version}"
         for pkg in revdeps:
             spec_path = os.path.join(pkg["package_path"], "spec")
             bump_rel(reason, pkg["name"], spec_path)
         logger.info("Created %s git commits", len(revdeps))
+
     if args.pkgbreak:
         logger.info("Generated PKGBREAK:")
         print(pkgbreak)
 
-    if revdeps is None:
-        revdeps = get_revdeps(args.package)
-    logger.info("Buildit command to open pr:")
+    logger.info("BuildIt command to open pr:")
     print(
         f"/openpr {args.package}: update to {version};{args.package}-{version};{args.package}:-pkgbreak,{','.join([pkg['name'] for pkg in revdeps])},{args.package}"
     )
