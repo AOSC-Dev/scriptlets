@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+# Usage: breaker [package-name] --rebuild --pkgbreak --bump
+# Steps to bump package with shared library:
+# 1. Update package
+# 2. Run breaker --pkgbreak or breaker --rebuild --pkgbreak
+# 3. Copy PKGBREAK to package defines
+# 4. Commit
+# 5. Run breaker --bump
+
+import requests
+import os
+import argparse
+import logging
+import re
+
+logger = logging.getLogger("breaker")
+
+
+# Locate package & autobuild path for specified package
+def search_package_path(package_name: str) -> tuple[str, str]:
+    with os.scandir(".") as dir1:
+        for section in dir1:
+            if section.is_dir() and not section.name.startswith("."):
+                with os.scandir(section) as dir2:
+                    for package in dir2:
+                        if package.is_dir() and os.path.isdir(
+                            os.path.join(package, "autobuild")
+                        ):
+                            if package.name == package_name:
+                                return package.path[2:], os.path.join(
+                                    package.path[2:], "autobuild/defines"
+                                )
+                            else:
+                                continue
+
+                        # search subpackage, like arch-install-scripts/01-genfstab
+                        path = package
+                        if os.path.isdir(path) and section.name != "groups":
+                            with os.scandir(path) as dir3:
+                                for subpackage in dir3:
+                                    if (
+                                        subpackage.name != "autobuild"
+                                        and subpackage.is_dir()
+                                    ):
+                                        defines_path = os.path.join(
+                                            subpackage, "defines"
+                                        )
+                                        try:
+                                            with open(defines_path, "r") as f:
+                                                defines = f.readlines()
+                                        except:
+                                            with open(
+                                                os.path.join(
+                                                    subpackage, "autobuild/defines"
+                                                ),
+                                                "r",
+                                            ) as f:
+                                                defines = f.readlines()
+                                        finally:
+                                            for line in defines:
+                                                if "PKGNAME=" in line and (
+                                                    "{}\n".format(package_name)
+                                                    == line[8:]
+                                                    or '"{}"\n'.format(package_name)
+                                                    == line[8:]
+                                                ):
+                                                    return (
+                                                        package.path[2:],
+                                                        defines_path[2:],
+                                                    )
+    # not found
+    return None, None
+
+
+# Get version of package
+def get_package_version(pkg_path: str) -> str:
+    spec_path = os.path.join(pkg_path, "spec")
+    with open(spec_path, "r") as f:
+        for i in f:
+            if i.startswith("VER="):
+                package_version = i.replace("VER=", "")
+                return package_version.strip()
+
+    return None
+
+
+# Get reverse library dependency for specified package
+def get_revdeps(package_name: str) -> list[dict[str, str]]:
+    revdeps_list = []
+    try:
+        response = requests.get(
+            "https://aosc-packages.cth451.me/revdep/{}?type=json".format(package_name)
+        )
+        response.raise_for_status()
+        package_info = response.json()
+        revdeps_list = [
+            package
+            for group in package_info["sobreaks"]
+            for package in group
+            if package not in revdeps_list
+        ]
+        if package_info["sobreaks_circular"] != None:
+            revdeps_list += package_info["sobreaks_circular"]
+    except:
+        logger.warning(
+            "Failed to get revdep from packages site, falling back to groups/%s-rebuilds",
+            package_name,
+        )
+        with open("groups/{}-rebuilds".format(package_name), "r") as f:
+            for line in f:
+                if line.startswith("# revdep:"):
+                    revdeps_list = [pkg.strip() for pkg in line[9:].split(",")]
+                    break
+        if len(revdeps_list) == 0:
+            logger.error(
+                "Failed to get reverse dependency of %s, and no fallback is available",
+                package_name,
+            )
+            raise
+
+    if len(revdeps_list) == 0:
+        logger.info("Package %s has no reverse dependency", package_name)
+        exit(0)
+
+    # remove +32 packages
+    revdeps_list = [i for i in revdeps_list if not i.endswith("+32")]
+
+    # remove transitional packages/latx
+    transitional_pkgs = ["gst-plugins-good-1-0", "latx"]
+    revdeps_list = [i for i in revdeps_list if i not in transitional_pkgs]
+
+    revdeps_list = sorted(revdeps_list)
+
+    # get package versions and filter out removed packages
+    res = []
+    for pkg in revdeps_list:
+        package_path, defines_path = search_package_path(pkg)
+        if package_path is None:
+            logger.warning("Package %s dropped, skipping", pkg)
+            continue
+
+        version = get_package_version(package_path)
+        res.append(
+            {
+                "name": pkg,
+                "package_path": package_path,
+                "defines_path": defines_path,
+                "version": version,
+            }
+        )
+    logger.info("Reverse dependencies: %s", ", ".join([pkg["name"] for pkg in res]))
+    return res
+
+
+# Generate groups/xxx-rebuilds content
+def gen_rebuilds_list_string(revdep_list: list[dict[str, str]]) -> str:
+    rebuilds_path_list = [pkg["package_path"] for pkg in revdep_list]
+    rebuilds_path_list = [
+        i for i in rebuilds_path_list if i != None and len(i.split("/")) == 2
+    ]
+    logger.info("Found package paths: %s", ", ".join(rebuilds_path_list))
+    return (
+        "# Auto-generated by breaker begin, do not edit\n"
+        + "# revdep: "
+        + ", ".join([pkg["name"] for pkg in revdep_list])
+        + "\n"
+        + "\n".join(sorted(rebuilds_path_list))
+        + "\n"
+        + "# Auto-generated by breaker end, do not edit\n"
+    )
+
+
+# Save groups/xxx-rebuilds file
+def write_rebuilds(package_name: str, rebuilds_path_list_str: str) -> None:
+    with open("groups/{}-rebuilds".format(package_name), "w") as f:
+        f.write(rebuilds_path_list_str)
+        logger.info("groups/{}-rebuilds created".format(package_name))
+
+
+# Generate PKGBREAK for a list of packages
+def gen_pkgbreak_string(revdeps: list[dict[str, str]]) -> str:
+    max_line_size = 68
+    pkgbreak_list = ["{}<={}".format(pkg["name"], pkg["version"]) for pkg in revdeps]
+    buffer = []
+    buffer2 = []
+    for i in pkgbreak_list:
+        buffer.append(i)
+        if len(" ".join(buffer)) < max_line_size:
+            buffer2.append(i)
+        else:
+            buffer = [i]
+            buffer2.append("\\\n")
+            buffer2.append(" " * 9 + " ".join(buffer))
+    return 'PKGBREAK="{}"'.format(" ".join(buffer2))
+
+
+# Bump version in spec and create git commit
+def bump_rel(reason, name, spec_path):
+    contents = []
+    has_rel = False
+    with open(spec_path, "r") as f:
+        for line in f:
+            if "REL=" in line:
+                cur_rel = line.split("=")[-1].strip()
+                # https://stackoverflow.com/a/17888240/2148614
+                int_rel = int(re.compile("(\d+)").match(cur_rel).group(1))
+                new_rel = str(int_rel + 1)
+                contents.append(line.replace(cur_rel, new_rel))
+                has_rel = True
+            elif "REL=" not in line:
+                contents.append(line)
+
+    if not has_rel:
+        contents.insert(1, "REL=1\n")
+    with open(spec_path, "w") as f:
+        f.writelines(contents)
+
+    os.system(f"git add {spec_path}")
+    os.system(f'git commit -m "{name}: bump REL due to {reason}"')
+
+
+def main():
+    logging.basicConfig(level=logging.INFO)
+    parser = argparse.ArgumentParser(
+        description="Breaker make bumping shared library easy"
+    )
+    parser.add_argument("package", help="Package name to update")
+    parser.add_argument(
+        "-r", "--rebuilds", action="store_true", help="Generate groups/xxx-rebuilds"
+    )
+    parser.add_argument(
+        "-p", "--pkgbreak", action="store_true", help="Generate PKGBREAK"
+    )
+    parser.add_argument(
+        "-b",
+        "--bump",
+        action="store_true",
+        help="Bump dependencies one in a git commit",
+    )
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="Enable debug message"
+    )
+
+    args = parser.parse_args()
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+
+    if args.bump and (args.rebuilds or args.pkgbreak):
+        logger.error("Do not use --bump with --rebuilds or --pkgbreak")
+        exit(1)
+
+    revdeps = None
+    if args.rebuilds:
+        revdeps = get_revdeps(args.package)
+        revdeps_path_list_str = gen_rebuilds_list_string(revdeps)
+        write_rebuilds(args.package, revdeps_path_list_str)
+    if args.pkgbreak:
+        if revdeps is None:
+            revdeps = get_revdeps(args.package)
+        pkgbreak = gen_pkgbreak_string(revdeps)
+    if args.bump:
+        if revdeps is None:
+            revdeps = get_revdeps(args.package)
+
+        package_path = search_package_path(args.package)[0]
+        reason = f"{args.package} update to {get_package_version(package_path)}"
+        for pkg in revdeps:
+            spec_path = os.path.join(pkg["package_path"], "spec")
+            bump_rel(reason, pkg["name"], spec_path)
+    if args.pkgbreak:
+        logger.info("Generated PKGBREAK:")
+        print(pkgbreak)
+
+
+if __name__ == "__main__":
+    main()
