@@ -329,13 +329,30 @@ def main():
         logger.info("Generated PKGBREAK:")
         print(pkgbreak)
 
-    logger.info("BuildIt command to open pr:")
-    current_branch = subprocess.check_output(
-        ["git", "symbolic-ref", "--short", "HEAD"], encoding="utf-8"
-    ).strip()
-    print(
-        f"/openpr {args.package}: update to {version};{current_branch};{args.package}:-pkgbreak,{','.join([os.path.basename(pkg['package_path']) for pkg in revdeps])},{args.package}"
+    logger.info("Using acbs-build to reorder packages")
+    output = subprocess.check_output(
+        ["sudo", "ciel", "shell", "-i", "main", "--", "acbs-build", "-ep", args.package]
+        + [os.path.basename(pkg["package_path"]) for pkg in revdeps],
+        encoding="utf-8",
     )
+    for line in output.split("\n"):
+        if "ACBS has saved your build queue to" in line:
+            file = line.split(" ")[-1].removesuffix("\x1b[0m")
+            with open(file, "r") as f:
+                pkgs = [pkg.strip() for pkg in f if pkg.strip() != args.package]
+            os.remove(file)
+
+            pkgs.insert(0, f"{args.package}:-pkgbreak")
+            pkgs.append(args.package)
+
+            logger.info("BuildIt command to open pr:")
+            current_branch = subprocess.check_output(
+                ["git", "symbolic-ref", "--short", "HEAD"], encoding="utf-8"
+            ).strip()
+            print(
+                f"/openpr {args.package}: update to {version};{current_branch};{','.join(pkgs)}"
+            )
+            break
 
 
 if __name__ == "__main__":
