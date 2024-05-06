@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # Usage: breaker [package-name] --rebuilds --pkgbreak --bump
 # Steps to bump package with shared library:
-# 0. Change directory to root of aosc-os-abbs clone
+# 0. Change directory to the root of aosc-os-abbs clone (e.g. /buildroots/xxx/TREE)
 # 1. Update package
-# 2. Run breaker --pkgbreak or breaker --rebuilds --pkgbreak
+# 2. Run breaker --pkgbreak (do not generate groups/xxx-rebuilds)
+#    or breaker --rebuilds --pkgbreak (generate groups/xxx-rebuilds)
 # 3. Copy PKGBREAK to package defines
 # 4. Commit
 # 5. Run breaker --bump
+# You can specify packages to exclude via: --exclude a b c
 
 import requests
 import os
