@@ -73,15 +73,33 @@ def search_package_path(package_name: str) -> tuple[str, str]:
 
 
 # Get version of package
-def get_package_version(pkg_path: str) -> str:
-    spec_path = os.path.join(pkg_path, "spec")
+def get_package_version(package_path: str, defines_path: str) -> str:
+    ver = None
+    rel = None
+    pkgepoch = None
+
+    spec_path = os.path.join(package_path, "spec")
     with open(spec_path, "r") as f:
         for i in f:
             if i.startswith("VER="):
-                package_version = i.replace("VER=", "")
-                return package_version.strip()
+                ver = i.replace("VER=", "").strip()
+            if i.startswith("REL="):
+                rel = i.replace("REL=", "").strip()
 
-    return None
+    with open(defines_path, "r") as f:
+        for i in f:
+            if i.startswith("PKGEPOCH="):
+                pkgepoch = i.replace("PKGEPOCH=", "").strip()
+
+    res = None
+    if ver is not None:
+        res = ver
+        if rel is not None:
+            res += "-" + rel
+        if pkgepoch is not None:
+            res = pkgepoch + ":" + res
+
+    return res
 
 
 # Get reverse library dependency for specified package
@@ -139,7 +157,7 @@ def get_revdeps(package_name: str) -> list[dict[str, str]]:
             logger.warning("Package %s dropped, skipping", pkg)
             continue
 
-        version = get_package_version(package_path)
+        version = get_package_version(package_path, defines_path)
         res.append(
             {
                 "name": pkg,
@@ -263,11 +281,13 @@ def main():
         if revdeps is None:
             revdeps = get_revdeps(args.package)
 
-        package_path = search_package_path(args.package)[0]
-        reason = f"{args.package} update to {get_package_version(package_path)}"
+        package_path, defines_path = search_package_path(args.package)
+        reason = f"{args.package} update to {get_package_version(package_path, defines_path)}"
+        logger.info("Bumping reverse depedencies")
         for pkg in revdeps:
             spec_path = os.path.join(pkg["package_path"], "spec")
             bump_rel(reason, pkg["name"], spec_path)
+        logger.info("Created %s git commits", len(revdeps))
     if args.pkgbreak:
         logger.info("Generated PKGBREAK:")
         print(pkgbreak)
