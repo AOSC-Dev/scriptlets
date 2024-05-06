@@ -7,7 +7,7 @@ import os
 
 def get_rebuilds_list(package_name: str) -> list:
     response = requests.get(
-        "https://packages.aosc.io/revdep/{}?type=json".format(package_name))
+        "https://aosc-packages.cth451.me/revdep/{}?type=json".format(package_name))
     response.raise_for_status()
     package_info = response.json()
     rebuilds_list = []
@@ -18,6 +18,15 @@ def get_rebuilds_list(package_name: str) -> list:
     if len(rebuilds_list) == 0:
         print("Package {} has nothing to rebuild!".format(package_name))
         exit(0)
+
+    # remove +32 packages
+    rebuilds_list = [i for i in rebuilds_list if not i.endswith("+32")]
+
+    # remove transitional packages/latx
+    transitional_pkgs = ["gst-plugins-good-1-0", "latx"]
+    rebuilds_list = [i for i in rebuilds_list if i not in transitional_pkgs]
+
+    print("Packages to rebuild:", ", ".join(rebuilds_list))
     return rebuilds_list
 
 
@@ -25,7 +34,7 @@ def gen_rebuilds_list_string(rebuilds_list: list) -> str:
     rebuilds_path_list = [search_package_path(i) for i in rebuilds_list]
     rebuilds_path_list = [
         i for i in rebuilds_path_list if i != None and len(i.split('/')) == 2]
-    return "\n".join(rebuilds_path_list) + "\n"
+    return "\n".join(sorted(rebuilds_path_list)) + "\n"
 
 
 def search_package_path(package_name: str) -> str:
@@ -34,9 +43,12 @@ def search_package_path(package_name: str) -> str:
             if section.is_dir() and not section.name.startswith('.'):
                 with os.scandir(section) as dir2:
                     for package in dir2:
-                        if package.name == package_name and package.is_dir() and os.path.isdir(
-                                os.path.join(package, "autobuild")):
-                            return package.path[2:]
+                        if package.is_dir() and os.path.isdir(os.path.join(package, "autobuild")):
+                            if package.name == package_name:
+                                return package.path[2:]
+                            else:
+                                continue
+
                         # search subpackage, like arch-install-scripts/01-genfstab
                         path = package
                         if os.path.isdir(path) and section.name != "groups":
