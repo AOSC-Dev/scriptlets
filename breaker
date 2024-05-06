@@ -352,6 +352,9 @@ def main():
             print(
                 f"/openpr {args.package}: update to {version};{current_branch};{','.join(pkgs)}"
             )
+
+            logger.info("Ciel command to build:")
+            print(f"sudo ciel build -i main {' '.join(pkgs)}")
             break
 
 
