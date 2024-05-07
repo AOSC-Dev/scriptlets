@@ -166,7 +166,7 @@ def get_revdeps(
 
     # add extra packages
     if include is not None:
-        revdeps_list += [include]
+        revdeps_list += include
 
     # dedup and sort
     revdeps_list = sorted(list(set(revdeps_list)))
