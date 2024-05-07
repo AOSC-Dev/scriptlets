@@ -107,7 +107,9 @@ def get_package_version(package_path: str, defines_path: str) -> str:
 
 
 # Get reverse library dependency for specified package
-def get_revdeps(package_name: str, alldeps: bool, exclude: str) -> list[dict[str, str]]:
+def get_revdeps(
+    package_name: str, alldeps: bool, include: list[str], exclude: list[str]
+) -> list[dict[str, str]]:
     revdeps_list = []
     try:
         response = requests.get(
@@ -161,6 +163,10 @@ def get_revdeps(package_name: str, alldeps: bool, exclude: str) -> list[dict[str
     # remove excluded packages
     if exclude is not None:
         revdeps_list = [i for i in revdeps_list if i not in exclude]
+
+    # add extra packages
+    if include is not None:
+        revdeps_list += [include]
 
     # dedup and sort
     revdeps_list = sorted(list(set(revdeps_list)))
@@ -291,11 +297,17 @@ def main():
     parser.add_argument(
         "-e", "--exclude", nargs="+", help="Exclude packages from reverse dependencies"
     )
+    parser.add_argument(
+        "-i", "--include", nargs="+", help="Add extra packages to reverse dependencies"
+    )
 
     args = parser.parse_args()
 
     if args.exclude is not None:
         logger.info("Excluding packages: %s", " ".join(args.exclude))
+
+    if args.include is not None:
+        logger.info("Extra packages: %s", " ".join(args.include))
 
     if args.debug:
         logger.setLevel(logging.DEBUG)
@@ -308,7 +320,7 @@ def main():
     package_path, defines_path = search_package_path(args.package)
     version = get_package_version(package_path, defines_path)
 
-    revdeps = get_revdeps(args.package, args.alldeps, args.exclude)
+    revdeps = get_revdeps(args.package, args.alldeps, args.include, args.exclude)
 
     if args.rebuilds:
         revdeps_path_list_str = gen_rebuilds_list_string(revdeps, args)
