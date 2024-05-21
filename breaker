@@ -204,6 +204,9 @@ def gen_rebuilds_list_string(revdep_list: list[dict[str, str]], args) -> str:
     if args.exclude is not None:
         generate_args.append("--exclude")
         generate_args += args.exclude
+    if args.include is not None:
+        generate_args.append("--include")
+        generate_args += args.include
     if args.alldeps:
         generate_args.append("--alldeps")
 
