@@ -30,12 +30,23 @@ def search_package_path(package_name: str) -> tuple[str, str]:
                         if package.is_dir() and os.path.isdir(
                             os.path.join(package, "autobuild")
                         ):
-                            if package.name == package_name:
-                                return package.path[2:], os.path.join(
-                                    package.path[2:], "autobuild/defines"
-                                )
-                            else:
-                                continue
+                            defines_path = os.path.join(
+                                package.path, "autobuild/defines"
+                            )
+                            if os.path.exists(defines_path):
+                                with open(defines_path, "r") as f:
+                                    defines = f.readlines()
+                                    for line in defines:
+                                        if "PKGNAME=" in line and (
+                                            "{}\n".format(package_name) == line[8:]
+                                            or '"{}"\n'.format(package_name) == line[8:]
+                                        ):
+                                            return (
+                                                package.path[2:],
+                                                defines_path[2:],
+                                            )
+
+                            continue
 
                         # search subpackage, like arch-install-scripts/01-genfstab
                         path = package
