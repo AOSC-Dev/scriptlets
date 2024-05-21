@@ -209,6 +209,8 @@ def gen_rebuilds_list_string(revdep_list: list[dict[str, str]], args) -> str:
     rebuilds_path_list = [
         i for i in rebuilds_path_list if i != None and len(i.split("/")) == 2
     ]
+    # dedup
+    rebuilds_path_list = list(set(rebuilds_path_list))
     logger.info("Found package paths: %s", ", ".join(rebuilds_path_list))
 
     generate_args = ["breaker"]
