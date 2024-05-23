@@ -37,6 +37,103 @@ def get_package_info(package_name: str) -> dict[str, str]:
     return None
 
 
+# Locate package & autobuild path for specified package
+def search_package_path(package_name: str) -> tuple[str, str]:
+    with os.scandir(".") as dir1:
+        for section in dir1:
+            if section.is_dir() and not section.name.startswith("."):
+                with os.scandir(section) as dir2:
+                    for package in dir2:
+                        if package.is_dir() and os.path.isdir(
+                            os.path.join(package, "autobuild")
+                        ):
+                            defines_path = os.path.join(
+                                package.path, "autobuild/defines"
+                            )
+                            if os.path.exists(defines_path):
+                                with open(defines_path, "r") as f:
+                                    defines = f.readlines()
+                                    for line in defines:
+                                        if "PKGNAME=" in line and (
+                                            "{}\n".format(package_name) == line[8:]
+                                            or '"{}"\n'.format(package_name) == line[8:]
+                                        ):
+                                            return (
+                                                package.path[2:],
+                                                defines_path[2:],
+                                            )
+
+                            continue
+
+                        # search subpackage, like arch-install-scripts/01-genfstab
+                        path = package
+                        if os.path.isdir(path) and section.name != "groups":
+                            with os.scandir(path) as dir3:
+                                for subpackage in dir3:
+                                    if (
+                                        subpackage.name != "autobuild"
+                                        and subpackage.is_dir()
+                                    ):
+                                        defines_path = os.path.join(
+                                            subpackage, "defines"
+                                        )
+                                        try:
+                                            with open(defines_path, "r") as f:
+                                                defines = f.readlines()
+                                        except:
+                                            with open(
+                                                os.path.join(
+                                                    subpackage, "autobuild/defines"
+                                                ),
+                                                "r",
+                                            ) as f:
+                                                defines = f.readlines()
+                                        finally:
+                                            for line in defines:
+                                                if "PKGNAME=" in line and (
+                                                    "{}\n".format(package_name)
+                                                    == line[8:]
+                                                    or '"{}"\n'.format(package_name)
+                                                    == line[8:]
+                                                ):
+                                                    return (
+                                                        package.path[2:],
+                                                        defines_path[2:],
+                                                    )
+    # not found
+    return None, None
+
+
+# Get version of package
+def get_package_version(package_path: str, defines_path: str) -> str:
+    ver = None
+    rel = None
+    pkgepoch = None
+
+    spec_path = os.path.join(package_path, "spec")
+    with open(spec_path, "r") as f:
+        for i in f:
+            if i.startswith("VER="):
+                ver = i.replace("VER=", "").strip()
+            if i.startswith("REL="):
+                rel = i.replace("REL=", "").strip()
+
+    with open(defines_path, "r") as f:
+        for i in f:
+            if i.startswith("PKGEPOCH="):
+                pkgepoch = i.replace("PKGEPOCH=", "").strip()
+
+    res = None
+    if ver is not None:
+        res = ver
+        if rel is not None:
+            res += "-" + rel
+        if pkgepoch is not None:
+            res = pkgepoch + ":" + res
+
+    return res
+
+
 # Get reverse library dependency for specified package
 def get_revdeps(
     package_name: str, alldeps: bool, include: list[str], exclude: list[str]
@@ -253,9 +350,9 @@ def main():
         logger.error("Do not use --bump with --rebuilds or --pkgbreak")
         exit(1)
 
-    # get info of new package
-    package_info = get_package_info(args.package)
-    version = package_info["version"]
+    # get info of new package locally
+    package_path, defines_path = search_package_path(args.package)
+    version = get_package_version(package_path, defines_path)
 
     revdeps = get_revdeps(args.package, args.alldeps, args.include, args.exclude)
 
