@@ -185,7 +185,12 @@ def get_revdeps(
     revdeps_list = [i for i in revdeps_list if not i.endswith("+32")]
 
     # remove transitional packages/latx
-    transitional_pkgs = ["gst-plugins-good-1-0", "gst-plugins-ugly-1-0", "latx"]
+    transitional_pkgs = [
+        "gst-plugins-good-1-0",
+        "gst-plugins-bad-1-0",
+        "gst-plugins-ugly-1-0",
+        "latx",
+    ]
     revdeps_list = [i for i in revdeps_list if i not in transitional_pkgs]
 
     # remove excluded packages
