@@ -7,7 +7,7 @@ import os
 
 def get_rebuilds_list(package_name: str) -> list:
     response = requests.get(
-        "https://aosc-packages.cth451.me/revdep/{}?type=json".format(package_name))
+        "https://packages.aosc.io/revdep/{}?type=json".format(package_name))
     response.raise_for_status()
     package_info = response.json()
     rebuilds_list = []
