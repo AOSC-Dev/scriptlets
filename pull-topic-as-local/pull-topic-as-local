@@ -32,7 +32,14 @@ for i in $@; do
 	fi
 
 	echo "Pulling topic repository: $i ..."
+	arch=`uname -m`
+	[ $arch == "mips64" ] && arch="loongson3"
+	[ $arch == "aarch64" ] && arch="arm64"
+	[ $arch == "ppc64le" ] && arch="ppc64el"
 	rsync -avSHP \
+		--include "*$arch*" \
+		--include "*/" \
+		--exclude "*" \
 		rsync://mirror.anthonos.org/anthon/debs/pool/$i/ \
 		OUTPUT-$i
 
