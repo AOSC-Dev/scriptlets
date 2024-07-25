@@ -108,8 +108,6 @@ fi
 
 abinfo "Generating config.toml ..."
 cat > config.toml <<EOF
-changelog-seen = 2
-
 [llvm]
 download-ci-llvm = false
 optimize = true
