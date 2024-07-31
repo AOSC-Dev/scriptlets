@@ -91,7 +91,7 @@ def main():
         print("[+] There is no noarch packages. Skipping.")
     if args.delete:
         clean_output_directory()
-    mark_upload_done(username, args.host, args.identity_file, args.verbose, args.allow_marking_upload_done_to_fail)
+    mark_upload_done(username, args.host, args.identity_file, args.verbose, args.allow_marking_upload_done_to_fail, args.ipv6, args.ipv4)
 
 
 def detect_and_ask(type_name: str, arg: str) -> str:
@@ -127,13 +127,17 @@ def delete_junk():
     subprocess.check_call(command)
 
 
-def mark_upload_done(username: str, host: str, identity_file=None, verbose=False, allow_fail=False):
+def mark_upload_done(username: str, host: str, identity_file=None, verbose=False, allow_fail=False, ipv6=False, ipv4=False):
     command = ["ssh", f"{username}@{host}", "touch", "/mirror/.updated"]
     if verbose:
         command.insert(1, "-v")
     if identity_file:
         command.insert(1, "-i")
         command.insert(2, identity_file)
+    if ipv4:
+        command.insert(1, "-4")
+    if ipv6:
+        command.insert(1, "-6")
     try:
         subprocess.check_call(command)
     except subprocess.CalledProcessError as err:
