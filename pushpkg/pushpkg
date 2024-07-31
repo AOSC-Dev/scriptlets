@@ -145,28 +145,38 @@ def mark_upload_done(username: str, host: str, identity_file=None, verbose=False
 
 def rsync_non_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, ipv6=False, ipv4=False):
     print("[+] Uploading arch-specific packages ...")
+    flags = []
+
+    if identity_file:
+        flags.extend(["--rsh", f"ssh -i {identity_file}"])
+
+    if branch == "stable":
+        flags.append("--ignore-existing")
+
+    if verbose:
+        flags.append("--verbose")
+
+    if ipv4:
+        flags.append("--ipv4")
+    if ipv6:
+        flags.append("--ipv6")
+
     command = [
         "rsync",
-        "-rlOvhzPe",
-        "ssh",
+        "--recursive",
         "--mkpath",
+        "--links",
+        "--omit-dir-times",
+        "--partial",
+        "--compress",
+        "--human-readable",
+        "--progress",
         "--exclude",
         "*_noarch.deb",
+        *flags,
         "./debs/",
         upload_url,
     ]
-    if verbose:
-        command.insert(1, "-v")
-    if ipv6:
-        command.insert(1, "-6")
-    if ipv4:
-        command.insert(1, "-4")
-
-    if identity_file:
-        command[2] = f"ssh -i {identity_file}"
-
-    if branch == "stable":
-        command.insert(1, "--ignore-existing")
 
     subprocess.check_call(command)
 
@@ -181,28 +191,36 @@ def rsync_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=
     flags = []
 
     if identity_file:
-        flags.extend(["-e", f"ssh -i {identity_file}"])
+        flags.extend(["--rsh", f"ssh -i {identity_file}"])
 
     if not force_push_noarch_package or branch == "stable":
         flags.append("--ignore-existing")
 
     if verbose:
-        flags.append("-v")
+        flags.append("--verbose")
+
+    if ipv4:
+        flags.append("--ipv4")
+    if ipv6:
+        flags.append("--ipv6")
 
     command = [
         "rsync",
-        *flags,
-        "-rlOhzP",
+        "--recursive",
+        "--mkpath",
+        "--links",
+        "--omit-dir-times",
+        "--partial",
+        "--compress",
+        "--human-readable",
+        "--progress",
         "--include",
         "*_noarch.deb",
+        *flags,
         "./debs/",
         upload_url,
     ]
 
-    if ipv6:
-        command.insert(1, "-6")
-    if ipv4:
-        command.insert(1, "-4")
     subprocess.check_call(command)
 
 
