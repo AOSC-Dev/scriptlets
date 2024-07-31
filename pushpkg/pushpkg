@@ -57,6 +57,9 @@ def main():
         "-4", "--ipv4", action="store_true", help="Use IPv4 addresses only"
     )
     parser.add_argument(
+        "-C", "--compress", action="store_true", help="Requests compression of all data for SSH, note this option should be used with caution"
+    )
+    parser.add_argument(
         "--host", type=str, nargs='?', default='repo.aosc.io', help="Specify the rsync host to push packages, defaults to repo.aosc.io"
     )
     parser.add_argument(
@@ -84,14 +87,14 @@ def main():
         sys.exit(1)
     delete_junk()
     upload_url = make_upload_url(username, branch, component, args.retro, args.host)
-    rsync_non_noarch_file(upload_url, branch, args.identity_file, args.verbose, args.ipv6, args.ipv4)
+    rsync_non_noarch_file(upload_url, branch, args.identity_file, args.verbose, args.ipv6, args.ipv4, args.compress)
     if have_noarch_files():
-        rsync_noarch_file(upload_url, branch, args.identity_file, args.verbose, args.force_push_noarch_package, args.ipv6, args.ipv4)
+        rsync_noarch_file(upload_url, branch, args.identity_file, args.verbose, args.force_push_noarch_package, args.ipv6, args.ipv4, args.compress)
     else:
         print("[+] There is no noarch packages. Skipping.")
     if args.delete:
         clean_output_directory()
-    mark_upload_done(username, args.host, args.identity_file, args.verbose, args.allow_marking_upload_done_to_fail, args.ipv6, args.ipv4)
+    mark_upload_done(username, args.host, args.identity_file, args.verbose, args.allow_marking_upload_done_to_fail, args.ipv6, args.ipv4, args.compress)
 
 
 def detect_and_ask(type_name: str, arg: str) -> str:
@@ -127,7 +130,7 @@ def delete_junk():
     subprocess.check_call(command)
 
 
-def mark_upload_done(username: str, host: str, identity_file=None, verbose=False, allow_fail=False, ipv6=False, ipv4=False):
+def mark_upload_done(username: str, host: str, identity_file=None, verbose=False, allow_fail=False, ipv6=False, ipv4=False, compress=False):
     command = ["ssh", f"{username}@{host}", "touch", "/mirror/.updated"]
     if verbose:
         command.insert(1, "-v")
@@ -138,6 +141,8 @@ def mark_upload_done(username: str, host: str, identity_file=None, verbose=False
         command.insert(1, "-4")
     if ipv6:
         command.insert(1, "-6")
+    if compress:
+        command.insert(1, "-C")
     try:
         subprocess.check_call(command)
     except subprocess.CalledProcessError as err:
@@ -147,12 +152,16 @@ def mark_upload_done(username: str, host: str, identity_file=None, verbose=False
             raise err
 
 
-def rsync_non_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, ipv6=False, ipv4=False):
+def rsync_non_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, ipv6=False, ipv4=False, compress=False):
     print("[+] Uploading arch-specific packages ...")
     flags = []
+    ssh_option = ""
+
+    if compress:
+        ssh_option = "-C"
 
     if identity_file:
-        flags.extend(["--rsh", f"ssh -i {identity_file}"])
+        flags.extend(["--rsh", f"ssh {ssh_option} -i {identity_file}"])
 
     if branch == "stable":
         flags.append("--ignore-existing")
@@ -190,12 +199,16 @@ def have_noarch_files() -> bool:
     return len(output) > 1
 
 
-def rsync_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, force_push_noarch_package=False, ipv6=False, ipv4=False):
+def rsync_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=False, force_push_noarch_package=False, ipv6=False, ipv4=False, compress=False):
     print("[+] Uploading noarch packages ...")
     flags = []
+    ssh_option = ""
+
+    if compress:
+        ssh_option = "-C"
 
     if identity_file:
-        flags.extend(["--rsh", f"ssh -i {identity_file}"])
+        flags.extend(["--rsh", f"ssh {ssh_option} -i {identity_file}"])
 
     if not force_push_noarch_package or branch == "stable":
         flags.append("--ignore-existing")
