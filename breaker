@@ -20,21 +20,101 @@ import subprocess
 logger = logging.getLogger("breaker")
 
 
-# Get package info from minipkgsite
-def get_package_info(package_name: str) -> dict[str, str]:
-    try:
-        response = requests.get(
-            "https://api.mini.packages.aosc.io/package?name={}".format(package_name)
-        )
-        response.raise_for_status()
-        package_info = response.json()
-        return package_info
-    except:
-        logger.warning(
-            "Failed to get info of package %s from mini packages site",
-            package_name,
-        )
-    return None
+# Locate package & autobuild path for specified package
+def search_package_path(package_name: str) -> tuple[str, str]:
+    with os.scandir(".") as dir1:
+        for section in dir1:
+            if section.is_dir() and not section.name.startswith("."):
+                with os.scandir(section) as dir2:
+                    for package in dir2:
+                        if package.is_dir() and os.path.isdir(
+                            os.path.join(package, "autobuild")
+                        ):
+                            defines_path = os.path.join(
+                                package.path, "autobuild/defines"
+                            )
+                            if os.path.exists(defines_path):
+                                with open(defines_path, "r") as f:
+                                    defines = f.readlines()
+                                    for line in defines:
+                                        if "PKGNAME=" in line and (
+                                            "{}\n".format(package_name) == line[8:]
+                                            or '"{}"\n'.format(package_name) == line[8:]
+                                        ):
+                                            return (
+                                                package.path[2:],
+                                                defines_path[2:],
+                                            )
+
+                            continue
+
+                        # search subpackage, like arch-install-scripts/01-genfstab
+                        path = package
+                        if os.path.isdir(path) and section.name != "groups":
+                            with os.scandir(path) as dir3:
+                                for subpackage in dir3:
+                                    if (
+                                        subpackage.name != "autobuild"
+                                        and subpackage.is_dir()
+                                    ):
+                                        defines_path = os.path.join(
+                                            subpackage, "defines"
+                                        )
+                                        try:
+                                            with open(defines_path, "r") as f:
+                                                defines = f.readlines()
+                                        except:
+                                            with open(
+                                                os.path.join(
+                                                    subpackage, "autobuild/defines"
+                                                ),
+                                                "r",
+                                            ) as f:
+                                                defines = f.readlines()
+                                        finally:
+                                            for line in defines:
+                                                if "PKGNAME=" in line and (
+                                                    "{}\n".format(package_name)
+                                                    == line[8:]
+                                                    or '"{}"\n'.format(package_name)
+                                                    == line[8:]
+                                                ):
+                                                    return (
+                                                        package.path[2:],
+                                                        defines_path[2:],
+                                                    )
+    # not found
+    return None, None
+
+
+# Get version of package
+def get_package_version(package_path: str, defines_path: str) -> str:
+    ver = None
+    rel = None
+    pkgepoch = None
+
+    spec_path = os.path.join(package_path, "spec")
+    with open(spec_path, "r") as f:
+        for i in f:
+            if i.startswith("VER="):
+                ver = i.replace("VER=", "").strip()
+            if i.startswith("REL="):
+                rel = i.replace("REL=", "").strip()
+
+    with open(defines_path, "r") as f:
+        for i in f:
+            if i.startswith("PKGEPOCH="):
+                pkgepoch = i.replace("PKGEPOCH=", "").strip()
+
+    res = None
+    if ver is not None:
+        res = ver
+        if rel is not None:
+            res += "-" + rel
+        if pkgepoch is not None:
+            res = pkgepoch + ":" + res
+
+    return res
 
 
 # Locate package & autobuild path for specified package
@@ -207,19 +287,18 @@ def get_revdeps(
     # get package versions and filter out removed packages
     res = []
     for pkg in revdeps_list:
-        package_info = get_package_info(pkg)
-        if package_info is None:
-            logger.warning("Package %s not found, skipping", pkg)
-            continue
-        if not os.path.exists(package_info["path"]):
+        package_path, defines_path = search_package_path(pkg)
+        if package_path is None:
             logger.warning("Package %s dropped, skipping", pkg)
             continue
 
+        version = get_package_version(package_path, defines_path)
         res.append(
             {
                 "name": pkg,
-                "path": package_info["path"],
-                "version": package_info["version"],
+                "package_path": package_path,
+                "defines_path": defines_path,
+                "version": version,
             }
         )
     logger.info("Reverse dependencies: %s", ", ".join([pkg["name"] for pkg in res]))
@@ -228,7 +307,7 @@ def get_revdeps(
 
 # Generate groups/xxx-rebuilds content
 def gen_rebuilds_list_string(revdep_list: list[dict[str, str]], args) -> str:
-    rebuilds_path_list = [pkg["path"] for pkg in revdep_list]
+    rebuilds_path_list = [pkg["package_path"] for pkg in revdep_list]
     rebuilds_path_list = [
         i for i in rebuilds_path_list if i != None and len(i.split("/")) == 2
     ]
@@ -355,7 +434,7 @@ def main():
         logger.error("Do not use --bump with --rebuilds or --pkgbreak")
         exit(1)
 
-    # get info of new package locally
+    # get info of new package
     package_path, defines_path = search_package_path(args.package)
     version = get_package_version(package_path, defines_path)
 
@@ -372,8 +451,8 @@ def main():
         logger.info("Bumping reverse depedencies")
         reason = f"{args.package} update to {version}"
         for pkg in revdeps:
-            spec_path = os.path.join(pkg["path"], "spec")
-            bump_rel(reason, os.path.basename(pkg["path"]), spec_path)
+            spec_path = os.path.join(pkg["package_path"], "spec")
+            bump_rel(reason, os.path.basename(pkg["package_path"]), spec_path)
         logger.info("Created %s git commits", len(revdeps))
 
     if args.pkgbreak:
@@ -383,7 +462,7 @@ def main():
     logger.info("Using acbs-build to reorder packages")
     output = subprocess.check_output(
         ["sudo", "ciel", "shell", "-i", "main", "--", "acbs-build", "-ep", args.package]
-        + [os.path.basename(pkg["path"]) for pkg in revdeps],
+        + [os.path.basename(pkg["package_path"]) for pkg in revdeps],
         encoding="utf-8",
     )
     for line in output.split("\n"):
