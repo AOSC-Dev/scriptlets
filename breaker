@@ -464,6 +464,7 @@ def main():
         ["sudo", "ciel", "shell", "-i", "main", "--", "acbs-build", "-ep", args.package]
         + [os.path.basename(pkg["package_path"]) for pkg in revdeps],
         encoding="utf-8",
+        stderr=subprocess.STDOUT,
     )
     for line in output.split("\n"):
         if "ACBS has saved your build queue to" in line:
