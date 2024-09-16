@@ -107,5 +107,5 @@ if [ "$_leaked_file_found" = '1' ]; then
 	done
 	exit 1
 else
-	echo "[ooo] No sensitive file(s) found in ${_media_type} image ${1} - congratulations!"
+	echo "[ooo] No sensitive file found in ${_media_type} image ${1} - congratulations!"
 fi
