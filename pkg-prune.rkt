@@ -1,17 +1,17 @@
 #!/usr/bin/env racket
 
 ;; Copyright 2024 Kaiyang Wu
-;; 
+;;
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files  (the “Software”), to
 ;; deal in the Software without restriction, including without limitation the
 ;; rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
 ;; sell copies of the Software, and to permit persons to whom the Software is
 ;; furnished to do so, subject to the following conditions:
-;; 
+;;
 ;; The above copyright notice and this permission notice shall be included in
 ;; all copies or substantial portions of the Software.
-;; 
+;;
 ;; THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 ;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 ;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -33,10 +33,10 @@
   (define url (format "https://packages.aosc.io/revdep/~a?type=json" pkgname))
   (define res (get url))
   (define json-res
-    (if (response-status-code res)
+    (if (= (response-status-code res) 200)
         (response-json res)
         (error 'revdeps
-               "Failed to get revdeps for ~a: status code ~a"
+               "failed to get reverse dependencies for ~a: status code ~a"
                pkgname
                (response-status-code res))))
   (define sobreaks
@@ -58,10 +58,10 @@
   (define url (format "https://packages.aosc.io/packages/~a?type=json" pkgname))
   (define res (get url))
   (define json-res
-    (if (response-status-code res)
+    (if (= (response-status-code res) 200)
         (response-json res)
         (error 'deps
-               "Failed to get deps for ~a: status code ~a"
+               "failed to get dependencies for ~a: status code ~a"
                pkgname
                (response-status-code res))))
   (flatten (for/list ([group (hash-ref json-res 'dependencies)])
