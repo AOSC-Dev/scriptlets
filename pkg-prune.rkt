@@ -89,11 +89,26 @@
            "Cannot prune ~a: package depended by ~a"
            pkgname
            (string-join rdeps ", ")))
+
+  ; Memoization for optimizing speed where a dep is queried more than once
+  (define revdeps-memo (make-hash))
+  (define deps-memo (make-hash))
+  (define/contract (memoized-revdeps p)
+    (-> string? (listof string?))
+    (when (not (hash-has-key? revdeps-memo p))
+      (hash-set! revdeps-memo p (revdeps p)))
+    (hash-ref revdeps-memo p))
+  (define/contract (memoized-deps p)
+    (-> string? (listof string?))
+    (when (not (hash-has-key? deps-memo p))
+      (hash-set! deps-memo p (deps p)))
+    (hash-ref revdeps-memo p))
+
   (define/contract (inner p)
     (-> string? (listof string?))
-    (if (= (length (revdeps p)) 1)
+    (if (= (length (memoized-revdeps p)) 1)
         (cons p
-              (flatten (for/list ([d (deps p)])
+              (flatten (for/list ([d (memoized-deps p)])
                          (inner d))))
         '()))
   (cons pkgname
