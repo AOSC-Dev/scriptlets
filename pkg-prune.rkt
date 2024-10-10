@@ -102,17 +102,12 @@
     (when (not (hash-has-key? revdeps-memo p))
       (hash-set! revdeps-memo p (revdeps p)))
     (hash-ref revdeps-memo p))
-  (define/contract (memoized-deps p)
-    (-> string? (listof string?))
-    (when (not (hash-has-key? deps-memo p))
-      (hash-set! deps-memo p (deps p)))
-    (hash-ref revdeps-memo p))
 
   (define/contract (inner p)
     (-> string? (listof string?))
     (if (= (length (memoized-revdeps p)) 1)
         (cons p
-              (flatten (for/list ([d (memoized-deps p)])
+              (flatten (for/list ([d (deps p)])
                          (inner d))))
         '()))
   (cons pkgname
