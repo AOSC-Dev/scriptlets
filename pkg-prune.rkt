@@ -96,8 +96,9 @@
               (flatten (for/list ([d (deps p)])
                          (inner d))))
         '()))
-  (flatten (for/list ([d (deps pkgname)])
-             (inner d))))
+  (cons pkgname
+        (flatten (for/list ([d (deps pkgname)])
+                   (inner d)))))
 
 (define package-to-prune
   (command-line #:program "pkg-prune.rkt" #:args (pkgname) pkgname))
