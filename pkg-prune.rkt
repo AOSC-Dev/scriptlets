@@ -24,8 +24,12 @@
 ;; `oma install racket`
 ;; `raco pkg install --auto http-easy-lib`
 
-#lang racket
+#lang racket/base
 
+(require racket/cmdline
+         racket/contract
+         racket/list
+         racket/string)
 (require net/http-easy)
 
 (define/contract (revdeps pkgname)
