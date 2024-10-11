@@ -28,7 +28,9 @@
 
 (require racket/cmdline
          racket/contract
+         racket/function
          racket/list
+         racket/match
          racket/string)
 (require net/http-easy)
 
@@ -85,6 +87,11 @@
 ;;    ["test1" '()]
 ;;    ["test2" '("test1")]))
 
+(define/contract (queue-foldl proc init lst)
+  (-> (-> any/c list? (values any/c list?)) any/c list? any/c)
+  (match-define-values (acc queue) (proc init lst))
+  (if (null? queue) acc (queue-foldl proc acc queue)))
+
 (define/contract (prune pkgname)
   (-> string? (listof string?))
   (define rdeps (revdeps pkgname))
@@ -103,16 +110,16 @@
       (hash-set! revdeps-memo p (revdeps p)))
     (hash-ref revdeps-memo p))
 
-  (define/contract (inner p)
-    (-> string? (listof string?))
-    (if (= (length (memoized-revdeps p)) 1)
-        (cons p
-              (flatten (for/list ([d (deps p)])
-                         (inner d))))
-        '()))
-  (cons pkgname
-        (flatten (for/list ([d (deps pkgname)])
-                   (inner d)))))
+  (queue-foldl (λ (acc queue)
+                 (define p (car queue))
+                 (if (member p acc)
+                     (list)
+                     (if (andmap (λ (rd) (member rd acc)) (memoized-revdeps p))
+                         ; when all revdeps are in the to-be-pruned list
+                         (values (cons p acc) (append (deps p) (cdr queue)))
+                         (values acc (cdr queue)))))
+               (list)
+               (list pkgname)))
 
 (define package-to-prune
   (command-line #:program "pkg-prune.rkt" #:args (pkgname) pkgname))
