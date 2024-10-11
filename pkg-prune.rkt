@@ -112,12 +112,11 @@
 
   (queue-foldl (λ (acc queue)
                  (define p (car queue))
-                 (if (member p acc)
-                     (list)
-                     (if (andmap (λ (rd) (member rd acc)) (memoized-revdeps p))
-                         ; when all revdeps are in the to-be-pruned list
-                         (values (cons p acc) (append (deps p) (cdr queue)))
-                         (values acc (cdr queue)))))
+                 (if (and (not (member p acc))
+                          (andmap (λ (rd) (member rd acc)) (memoized-revdeps p)))
+                     ; when all revdeps are in the to-be-pruned list
+                     (values (cons p acc) (append (deps p) (cdr queue)))
+                     (values acc (cdr queue))))
                (list)
                (list pkgname)))
 
