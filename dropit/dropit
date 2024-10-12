@@ -5,13 +5,13 @@
 set -Eeuo pipefail
 trap 'errorHandler "$?" "${FUNCNAME[0]}" "$LINENO"' ERR
 
-die() {
+error() {
     echo -e "\e[0;31m[ERROR] $*\e[0m" >&2
-    exit 1
 }
 
-log() {
-    echo -e "\e[0;32m$*\e[0m" >&2
+die() {
+    error "$*"
+    exit 1
 }
 
 errorHandler() {
@@ -116,7 +116,7 @@ dropIt() {
         commitPaths+=("$group")
     done
 
-    log "[$pkg] Committing drop ..."
+    log "[$pkg] Committing ..."
     git commit -m "$pkg: $commitMessage" \
         --trailer X-AOSC-dropit-package="$pkg" \
         --trailer X-AOSC-dropit-directory="$pkgDir" \
@@ -134,7 +134,7 @@ dropIt() {
         --color=always \
         -m8 -M60 --column --heading >>"$remainingUsagesFile"
 
-    log "[$pkg] Dropped!"
+    log "[$pkg] SUCCESS!"
 }
 
 while [ $# -ne 0 ]; do
@@ -164,7 +164,9 @@ done
 remainingUsagesFile="$(mktemp --suffix=.txt --tmpdir dropit.remusg.XXX)"
 
 for pkg in "${dropWaitingList[@]}"; do
-    dropIt "$pkg"
+    if ! dropIt "$pkg"; then
+        error "[$pkg] FAILED"
+    fi
 done
 
 log "[*] To show remaining references: cat $remainingUsagesFile"
