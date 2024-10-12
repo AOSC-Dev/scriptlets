@@ -44,7 +44,9 @@ sumAndCommit() {
     log "[$pkg] Updated to $pkgVer"
 
     log "[$pkg] Updating checksum ..."
-    abbs-update-checksum "$pkg"
+    if ! abbs-update-checksum "$pkg"; then
+        return 1
+    fi
 
     log "[$pkg] Committing ..."
     git add "$pkgDir"
