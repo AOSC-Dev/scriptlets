@@ -28,7 +28,6 @@
 
 (require racket/cmdline
          racket/contract
-         racket/function
          racket/list
          racket/string)
 (require net/http-easy)
