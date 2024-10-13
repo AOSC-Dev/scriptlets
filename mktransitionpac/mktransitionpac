@@ -1,0 +1,110 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0
+set -Eeuo pipefail
+trap 'errorHandler "$?" "${FUNCNAME[0]}" "$LINENO"' ERR
+
+error() {
+    echo -e "\e[0;31m[ERROR] $*\e[0m" >&2
+}
+
+die() {
+    error "$*"
+    exit 1
+}
+
+log() {
+    echo -e "\e[0;32m$*\e[0m" >&2
+}
+
+errorHandler() {
+    echo -e "\e[0;31m[BUG] Line $3 ($2): $1\e[0m" >&2
+    exit "$1"
+}
+
+getPkgDir() {
+    local path
+    path="$(find . -mindepth 2 -maxdepth 2 -type d -name "$1" -print -quit)"
+    echo "${path#./}"
+}
+
+getPkgEpoch() {
+    (
+        # shellcheck source=/dev/null
+        source "$1"/autobuild/defines
+        echo "${PKGEPOCH:-0}"
+    )
+}
+
+getPkgSec() {
+    (
+        # shellcheck source=/dev/null
+        source "$1"/autobuild/defines
+        echo "${PKGSEC:?}"
+    )
+}
+
+mkTransitionalPackage() {
+    local transPac="$1" newPac="$2"
+    local pkgSection
+    pkgSection="$(dirname "$(getPkgDir "$2")")"
+
+    local pkgEpoch=1
+    local pkgSec
+    pkgSec="$(getPkgSec "$pkgSection/$newPac")"
+
+    if [[ -e "$pkgSection/$transPac" ]]; then
+        log "[$1 -> $2] Removing old package ..."
+        pkgEpoch="$(getPkgEpoch "$pkgSection/$transPac")"
+        ((pkgEpoch++)) || true
+        rm -rf "${pkgSection:?}/$transPac"
+    fi
+
+    log "[$1 -> $2] Creating package (epoch $pkgEpoch) ..."
+    mkdir "$pkgSection/$transPac"
+    mkdir "$pkgSection/$transPac/autobuild"
+    cat >"$pkgSection/$transPac/spec" <<EOF
+VER=0
+DUMMYSRC=1
+EOF
+    cat >"$pkgSection/$transPac/autobuild/build" <<EOF
+mkdir "\$PKGDIR"
+EOF
+    cat >"$pkgSection/$transPac/autobuild/defines" <<EOF
+PKGNAME=$transPac
+PKGSEC=$pkgSec
+PKGDEP="$newPac"
+PKGDES="Transitional package for $newPac"
+
+ABHOST=noarch
+PKGEPOCH=$pkgEpoch
+EOF
+
+    log "[$1 -> $2] Committing ..."
+    git add "$pkgSection/$transPac"
+    git commit -m "$transPac: transitionalise for $newPac" \
+        --trailer X-AOSC-mktransitionpac-transition-package="$transPac" \
+        --trailer X-AOSC-mktransitionpac-new-package="$newPac" \
+        --trailer X-AOSC-mktransitionpac-directory="$pkgSection" \
+        --trailer X-AOSC-mktransitionpac-section="$pkgSec" \
+        --trailer X-AOSC-mktransitionpac-epoch="$pkgEpoch" \
+        -- "$pkgSection/$transPac"
+
+    local commitLog
+    commitLog="$(git -c core.abbrev=16 \
+        log HEAD \
+        --oneline -1 --no-decorate --color=always)"
+    log "[$1 -> $2] $commitLog"
+
+    log "[$1 -> $2] SUCCESS"
+}
+
+if [[ $# != 2 ]]; then
+    cat <<EOF
+Usage: $0 <TRANSITIONAL PACKAGE> <NEW PACKAGE>
+EOF
+    exit
+fi
+
+if ! mkTransitionalPackage "$1" "$2"; then
+    error "[$1 -> $2] FAILED"
+fi
