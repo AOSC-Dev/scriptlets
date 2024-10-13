@@ -41,6 +41,12 @@ commitPkg() {
     pkgDir="$(getPkgDir "$pkg")"
     pkgVer="$(getPkgVer "$pkgDir")"
 
+    if [[ "${BUMPREL:-}" == 1 ]]; then
+        log "[$pkg] Bumping REL ..."
+        "$(dirname "$(dirname "$(realpath "$(command -v "$0")")")")/bump-rel/bump-rel" \
+            "$pkgDir/spec"
+    fi
+
     local message
     message="$pkg: ${commitTemplate//\$VER/${pkgVer}}"
 
@@ -63,6 +69,9 @@ Usage: $0 <MESSAGE> [PACKAGES]...
 
 Commit many packages with a message.
 When packages is not set, all changed packages are committed.
+
+Possible environment variables:
+    BUMPREL: Set to 1 to bump REL before committing
 EOF
     exit
 fi
