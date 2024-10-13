@@ -112,7 +112,7 @@ dropIt() {
     commitPaths+=("$pkgDir")
 
     local -a groupsWithPkg
-    readarray -t groupsWithPkg < <(grep -rHE "^$pkgDir$" groups/ | cut -d':' -f1)
+    readarray -t groupsWithPkg < <((grep -rHE "^$pkgDir$" groups/ || true) | cut -d':' -f1)
     for group in "${groupsWithPkg[@]}"; do
         log "[$pkg] Removing from $group"
         removePackageFromGroup "$pkg" "$pkgDir" "$group"
