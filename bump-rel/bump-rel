@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 # A simple script to "bump REL".
 # Do whatever the fuck you want with this script.
 #
@@ -18,9 +18,10 @@ unset REL
 #
 # FIXME: does not give two f*cks about duplicate REL=, not pretty, but
 # practically, nothing can really go wrong - or can it?
-if ! $(grep '^REL=' "$1" > /dev/null); then
-   echo 'REL=1' >> "$1"
+if ! grep -E '^REL=' "$1" >/dev/null; then
+   echo 'REL=1' >>"$1"
 else
+   # shellcheck source=/dev/null
    source "$PWD"/"$1"
    NEWREL=$(($REL + 1))
    sed -e "s|REL=.*|REL=$NEWREL|g" -i "$1"
