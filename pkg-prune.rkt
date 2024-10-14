@@ -32,7 +32,7 @@
          racket/string)
 (require net/http-easy)
 
-(define/contract (revdeps pkgname)
+(define/contract (packages-site-revdeps pkgname)
   (-> string? (listof string?))
   (define url (format "https://packages.aosc.io/revdep/~a?type=json" pkgname))
   (define res (get url))
@@ -44,7 +44,10 @@
                pkgname
                (response-status-code res))))
   (define sobreaks
-    (foldl (λ (p acc) (if (member p acc) acc (cons p acc)))
+    (foldl (λ (p acc)
+             (if (member p acc)
+                 acc
+                 (cons p acc)))
            '()
            (flatten (hash-ref json-res 'sobreaks))))
   (define sobreaks-circular (hash-ref json-res 'sobreaks_circular))
@@ -57,7 +60,7 @@
                  (hash-ref p 'package)))))
   (append all-sobreaks all-revdeps))
 
-(define/contract (deps pkgname)
+(define/contract (packages-site-deps pkgname)
   (-> string? (listof string?))
   (define url (format "https://packages.aosc.io/packages/~a?type=json" pkgname))
   (define res (get url))
@@ -75,30 +78,19 @@
                     '()
                     (hash-ref group 'packages)))))
 
-;;(define (revdeps pkgname)
-;;  (match pkgname
-;;    ["test1" '("test2")]
-;;    ["test2" '()]))
-;;
-;;(define (deps pkgname)
-;;  (match pkgname
-;;    ["test1" '()]
-;;    ["test2" '("test1")]))
+;; Switch implementations here
+(define revdeps packages-site-revdeps)
+(define deps packages-site-deps)
 
 (define/contract (queue-foldl proc init lst)
   (-> (-> any/c list? (values any/c list?)) any/c list? any/c)
   (define-values (acc queue) (proc init lst))
-  (if (null? queue) acc (queue-foldl proc acc queue)))
+  (if (null? queue)
+      acc
+      (queue-foldl proc acc queue)))
 
-(define/contract (prune pkgname)
-  (-> string? (listof string?))
-  (define rdeps (revdeps pkgname))
-  (when (not rdeps)
-    (error 'prune
-           "Cannot prune ~a: package depended by ~a"
-           pkgname
-           (string-join rdeps ", ")))
-
+(define/contract (prune pkgnames)
+  (-> (listof string?) (listof string?))
   ; Memoization for optimizing speed where a dep is queried more than once
   (define revdeps-memo (make-hash))
   (define deps-memo (make-hash))
@@ -111,17 +103,18 @@
   (define res
     (queue-foldl (λ (acc queue)
                    (define p (car queue))
-                   (if (and (not (member p acc))
-                            (andmap (λ (rd) (member rd acc))
-                                    (memoized-revdeps p)))
+                   (define rdeps (memoized-revdeps p))
+                   (if (or (null? rdeps)
+                           (and (not (member p acc))
+                                (andmap (λ (rd) (member rd acc)) rdeps)))
                        ; when all revdeps are in the to-be-pruned list
                        (values (cons p acc) (append (deps p) (cdr queue)))
                        (values acc (cdr queue))))
                  (list)
-                 (list pkgname)))
-  (if (member pkgname res) res (cons pkgname res)))
+                 pkgnames))
+  res)
 
-(define package-to-prune
-  (command-line #:program "pkg-prune.rkt" #:args (pkgname) pkgname))
+(define packages-to-prune
+  (command-line #:program "pkg-prune.rkt" #:args pkgnames pkgnames))
 
-(for-each displayln (prune package-to-prune))
+(for-each displayln (prune packages-to-prune))
