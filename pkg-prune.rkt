@@ -72,11 +72,16 @@
                pkgname
                (response-status-code res))))
   (flatten (for/list ([group (hash-ref json-res 'dependencies)])
-             (foldl (λ (p acc)
+             (if (or (equal? (hash-ref group 'relationship) "Depends")
+                     (equal? (hash-ref group 'relationship) "Depends (build)"))
+                 (foldl (λ (p acc)
                       (define pname (list-ref p 0))
-                      (if (member pname acc) acc (cons pname acc)))
-                    '()
-                    (hash-ref group 'packages)))))
+                      (if (member pname acc)
+                          acc
+                          (cons pname acc)))
+                    (list)
+                    (hash-ref group 'packages))
+                 (list)))))
 
 ;; Switch implementations here
 (define revdeps packages-site-revdeps)
