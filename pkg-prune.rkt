@@ -43,22 +43,9 @@
                "failed to get reverse dependencies for ~a: status code ~a"
                pkgname
                (response-status-code res))))
-  (define sobreaks
-    (foldl (λ (p acc)
-             (if (member p acc)
-                 acc
-                 (cons p acc)))
-           '()
-           (flatten (hash-ref json-res 'sobreaks))))
-  (define sobreaks-circular (hash-ref json-res 'sobreaks_circular))
-  (define all-sobreaks (append sobreaks sobreaks-circular))
-  (define all-revdeps
-    (flatten (for/list ([group (hash-ref json-res 'revdeps)])
-               (for/list ([p (hash-ref group 'deps)]
-                          #:when (not (member (hash-ref p 'package)
-                                              all-sobreaks)))
-                 (hash-ref p 'package)))))
-  (append all-sobreaks all-revdeps))
+  (flatten (for/list ([group (hash-ref json-res 'revdeps)])
+             (for/list ([p (hash-ref group 'deps)])
+               (hash-ref p 'package)))))
 
 (define/contract (packages-site-deps pkgname)
   (-> string? (listof string?))
@@ -72,16 +59,16 @@
                pkgname
                (response-status-code res))))
   (flatten (for/list ([group (hash-ref json-res 'dependencies)])
-             (if (or (equal? (hash-ref group 'relationship) "Depends")
-                     (equal? (hash-ref group 'relationship) "Depends (build)"))
-                 (foldl (λ (p acc)
-                      (define pname (list-ref p 0))
-                      (if (member pname acc)
+             (if (or (equal? (hash-ref group 'relationship) "Breaks")
+                     (equal? (hash-ref group 'relationship) "Provides"))
+               (list)
+               (foldl (λ (p acc)
+                        (define pname (list-ref p 0))
+                        (if (member pname acc)
                           acc
                           (cons pname acc)))
-                    (list)
-                    (hash-ref group 'packages))
-                 (list)))))
+                      (list)
+                      (hash-ref group 'packages))))))
 
 ;; Switch implementations here
 (define revdeps packages-site-revdeps)
@@ -98,7 +85,6 @@
   (-> (listof string?) (listof string?))
   ; Memoization for optimizing speed where a dep is queried more than once
   (define revdeps-memo (make-hash))
-  (define deps-memo (make-hash))
   (define/contract (memoized-revdeps p)
     (-> string? (listof string?))
     (when (not (hash-has-key? revdeps-memo p))
