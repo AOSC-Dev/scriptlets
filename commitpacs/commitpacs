@@ -76,8 +76,22 @@ EOF
     exit
 fi
 
-declare commitTemplate="$1"
+declare commitTemplate
+case "$1" in
+n | new)
+    # shellcheck disable=SC2016
+    commitTemplate='new, $VER'
+    ;;
+u | upd | update)
+    # shellcheck disable=SC2016
+    commitTemplate='update to $VER'
+    ;;
+*)
+    commitTemplate="$1"
+    ;;
+esac
 shift
+
 declare -a pkgs
 if [[ $# == 0 ]]; then
     readarray -t pkgs < <(git status --porcelain | cut -d' ' -f 3 | cut -d'/' -f2 | sort | uniq)
