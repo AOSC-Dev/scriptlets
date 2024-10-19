@@ -22,53 +22,71 @@
 
 ;; Prerequisites on AOSC OS
 ;; `oma install racket`
-;; `raco pkg install --auto http-easy-lib`
 
 #lang racket/base
 
 (require racket/cmdline
          racket/contract
          racket/list
+         racket/match
          racket/string)
-(require net/http-easy)
+(require json
+         net/url
+         net/url-connect
+         openssl)
+
+(current-https-protocol (ssl-secure-client-context))
+
+(define/contract (extract-http-code header)
+  (-> string? exact-positive-integer?)
+  (match header
+    [(regexp #rx"^HTTP/... ([1-9][0-9][0-9]).*" (list _ status-code))
+     (string->number status-code)]
+    [_ (error 'extract-http-code "invalid http header: ~a" header)]))
 
 (define/contract (packages-site-revdeps pkgname)
   (-> string? (listof string?))
-  (define url (format "https://packages.aosc.io/revdep/~a?type=json" pkgname))
-  (define res (get url))
+  (define url
+    (string->url (format "https://packages.aosc.io/revdep/~a?type=json"
+                         pkgname)))
+  (define port (get-impure-port url))
+  (define header (purify-port port))
   (define json-res
-    (if (= (response-status-code res) 200)
-        (response-json res)
+    (if (= (extract-http-code header) 200)
+        (read-json port)
         (error 'revdeps
                "failed to get reverse dependencies for ~a: status code ~a"
                pkgname
-               (response-status-code res))))
+               (extract-http-code header))))
   (flatten (for/list ([group (hash-ref json-res 'revdeps)])
              (for/list ([p (hash-ref group 'deps)])
                (hash-ref p 'package)))))
 
 (define/contract (packages-site-deps pkgname)
   (-> string? (listof string?))
-  (define url (format "https://packages.aosc.io/packages/~a?type=json" pkgname))
-  (define res (get url))
+  (define url
+    (string->url (format "https://packages.aosc.io/packages/~a?type=json"
+                         pkgname)))
+  (define port (get-impure-port url))
+  (define header (purify-port port))
   (define json-res
-    (if (= (response-status-code res) 200)
-        (response-json res)
-        (error 'deps
-               "failed to get dependencies for ~a: status code ~a"
+    (if (= (extract-http-code header) 200)
+        (read-json port)
+        (error 'revdeps
+               "failed to get reverse dependencies for ~a: status code ~a"
                pkgname
-               (response-status-code res))))
+               (extract-http-code header))))
   (flatten (for/list ([group (hash-ref json-res 'dependencies)])
              (if (or (equal? (hash-ref group 'relationship) "Breaks")
                      (equal? (hash-ref group 'relationship) "Provides"))
-               (list)
-               (foldl (λ (p acc)
-                        (define pname (list-ref p 0))
-                        (if (member pname acc)
-                          acc
-                          (cons pname acc)))
-                      (list)
-                      (hash-ref group 'packages))))))
+                 (list)
+                 (foldl (λ (p acc)
+                          (define pname (list-ref p 0))
+                          (if (member pname acc)
+                              acc
+                              (cons pname acc)))
+                        (list)
+                        (hash-ref group 'packages))))))
 
 ;; Switch implementations here
 (define revdeps packages-site-revdeps)
