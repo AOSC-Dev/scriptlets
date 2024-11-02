@@ -73,7 +73,7 @@
     (if (= (extract-http-code header) 200)
         (read-json port)
         (error 'revdeps
-               "failed to get reverse dependencies for ~a: status code ~a"
+               "failed to get dependencies for ~a: status code ~a"
                pkgname
                (extract-http-code header))))
   (flatten (for/list ([group (hash-ref json-res 'dependencies)])
