@@ -21,7 +21,22 @@
 ;; IN THE SOFTWARE.
 
 ;; Prerequisites on AOSC OS
+;;
 ;; `oma install racket`
+;;
+;; Usage
+;;
+;; This tool helps you to retire unneeded packages depended by your target
+;; retiring packages of interest. For example, if `waybar` is going to be
+;; retired, packages `playerctl`, `libcava`, and `power-profiles-daemon` which
+;; were not depended by any other packages, will become orphans afterwards.
+;; Using `pkg-prune.rkt waybar` can list these packages for you to decide their
+;; fates.
+;;
+;; This tool would silently quit without output if the target packages have
+;; reverse dependencies, which means pruning them would lead to dependency
+;; breakages. In case you want to retire packages *and* their reverse
+;; dependencies, check out the `dropit` tool instead.
 
 #lang racket/base
 
