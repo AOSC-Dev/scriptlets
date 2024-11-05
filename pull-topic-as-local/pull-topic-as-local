@@ -33,17 +33,19 @@ for i in $@; do
 
 	echo "Pulling topic repository: $i ..."
 	arch=`uname -m`
-	[ $arch == "mips64" ] && arch="loongson3"
 	[ $arch == "aarch64" ] && arch="arm64"
+	[ $arch == "x86_64" ] && arch="amd64"
+	[ $arch == "mips64" ] && arch="loongson3"
 	[ $arch == "ppc64le" ] && arch="ppc64el"
-	rsync -avSHP \
-		--include "*$arch*" \
-		--include "*/" \
-		--include "*noarch*" \
-		--exclude "*" \
-		rsync://mirror.anthonos.org/anthon/debs/pool/$i/ \
+	rsync \
+		-avSHPR \
+		--include='*/' \
+		rsync://mirror.anthonos.org/anthon/debs/pool/$i/main/**/*_{"${arch}",noarch}.deb \
 		OUTPUT-$i
 
 	echo "Adjusting topic repository for Ciel: $i ..."
+	mv -v OUTPUT-$i/**/main \
+		OUTPUT-$i/main
+	rm -v OUTPUT-$i/debs
 	mv -v OUTPUT-$i/{main,debs}
 done
