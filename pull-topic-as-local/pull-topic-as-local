@@ -47,4 +47,6 @@ for i in $@; do
 	mv -v OUTPUT-$i/*/*/*/main \
 		OUTPUT-$i/
 	rm -v OUTPUT-$i/debs
+	mv -v OUTPUT-$i/main \
+		OUTPUT-$i/debs
 done
