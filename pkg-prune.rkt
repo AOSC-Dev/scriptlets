@@ -139,6 +139,11 @@
   res)
 
 (define packages-to-prune
-  (command-line #:program "pkg-prune.rkt" #:args pkgnames pkgnames))
+  (command-line #:program "pkg-prune.rkt"
+                #:args pkgnames
+                (when (null? pkgnames)
+                  (raise-user-error 'pkg-prune
+                                    "expects at least one package name"))
+                pkgnames))
 
 (for-each displayln (prune packages-to-prune))
