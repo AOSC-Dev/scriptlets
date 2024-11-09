@@ -103,9 +103,48 @@
                         (list)
                         (hash-ref group 'packages))))))
 
+(define/contract (oma-rdeps pkgname)
+  (-> string? (listof string?))
+  (define-values (sp out in err)
+    (subprocess #f #f #f "/usr/bin/oma" "rdepends" "--json" pkgname))
+  (define json-res (read-json out))
+  (close-input-port out)
+  (close-output-port in)
+  (close-input-port err)
+  (subprocess-wait sp)
+  (define rdeps (hash-ref (hash-ref json-res 'rdeps) 'Depends))
+  (foldl (λ (rdep acc)
+           (define pkgname (hash-ref (car rdep) 'name))
+           (if (or (member pkgname acc)
+                   (string-suffix? pkgname "-dbg"))
+               acc
+               (cons pkgname acc)))
+         (list)
+         rdeps))
+
+(define/contract (oma-deps pkgname)
+  (-> string? (listof string?))
+  (define-values (sp out in err)
+    (subprocess #f #f #f "/usr/bin/oma" "depends" "--json" pkgname))
+  (define json-res (read-json out))
+  (close-input-port out)
+  (close-output-port in)
+  (close-input-port err)
+  (subprocess-wait sp)
+  (define deps (hash-ref (hash-ref json-res 'deps) 'Depends))
+  (foldl (λ (dep acc)
+           (define pkgname (hash-ref (car dep) 'name))
+           (if (or (member pkgname acc))
+               acc
+               (cons pkgname acc)))
+         (list)
+         deps))
+
 ;; Switch implementations here
-(define revdeps packages-site-revdeps)
-(define deps packages-site-deps)
+;(define revdeps packages-site-revdeps)
+;(define deps packages-site-deps)
+(define revdeps oma-rdeps)
+(define deps oma-deps)
 
 (define/contract (queue-foldl proc init lst)
   (-> (-> any/c list? (values any/c list?)) any/c list? any/c)
@@ -124,7 +163,19 @@
       (hash-set! revdeps-memo p (revdeps p)))
     (hash-ref revdeps-memo p))
 
-  (define res
+  ;; Recursively get reverse dependency tree leaves
+  (define rdeps-res
+    (queue-foldl (λ (acc queue)
+                   (define p (car queue))
+                   (define rdeps (memoized-revdeps p))
+                   (if (or (null? rdeps) (member p acc))
+                       (values acc (cdr queue))
+                       (values (append rdeps acc) (append (cdr queue) rdeps))))
+                 (list)
+                 pkgnames))
+
+  ;; Recursively get newly orphaned packages with given packages to be pruned
+  (define deps-res
     (queue-foldl (λ (acc queue)
                    (define p (car queue))
                    (define rdeps (memoized-revdeps p))
@@ -135,8 +186,8 @@
                        (values (cons p acc) (append (deps p) (cdr queue)))
                        (values acc (cdr queue))))
                  (list)
-                 pkgnames))
-  res)
+                 (append pkgnames rdeps-res)))
+  deps-res)
 
 (define packages-to-prune
   (command-line #:program "pkg-prune.rkt"
