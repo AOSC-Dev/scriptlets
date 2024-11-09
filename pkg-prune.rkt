@@ -112,15 +112,18 @@
   (close-output-port in)
   (close-input-port err)
   (subprocess-wait sp)
-  (define rdeps (hash-ref (hash-ref json-res 'rdeps) 'Depends))
+  (define rdeps (hash-ref json-res 'rdeps))
+  (define all-rdeps
+    (append (hash-ref rdeps 'Depends null)
+            (hash-ref rdeps 'Recommends null)
+            (hash-ref rdeps 'Suggests null)))
   (foldl (λ (rdep acc)
            (define pkgname (hash-ref (car rdep) 'name))
-           (if (or (member pkgname acc)
-                   (string-suffix? pkgname "-dbg"))
+           (if (or (member pkgname acc) (string-suffix? pkgname "-dbg"))
                acc
                (cons pkgname acc)))
          (list)
-         rdeps))
+         all-rdeps))
 
 (define/contract (oma-deps pkgname)
   (-> string? (listof string?))
@@ -131,14 +134,18 @@
   (close-output-port in)
   (close-input-port err)
   (subprocess-wait sp)
-  (define deps (hash-ref (hash-ref json-res 'deps) 'Depends))
+  (define deps (hash-ref json-res 'deps))
+  (define all-deps
+    (append (hash-ref deps 'Depends null)
+            (hash-ref deps 'Recommends null)
+            (hash-ref deps 'Suggests null)))
   (foldl (λ (dep acc)
            (define pkgname (hash-ref (car dep) 'name))
            (if (or (member pkgname acc))
                acc
                (cons pkgname acc)))
          (list)
-         deps))
+         all-deps))
 
 ;; Switch implementations here
 ;(define revdeps packages-site-revdeps)
@@ -168,7 +175,7 @@
     (queue-foldl (λ (acc queue)
                    (define p (car queue))
                    (define rdeps (memoized-revdeps p))
-                   (if (or (null? rdeps) (member p acc))
+                   (if (or (null? rdeps) (andmap (λ (rd) (member rd acc)) rdeps))
                        (values acc (cdr queue))
                        (values (append rdeps acc) (append (cdr queue) rdeps))))
                  (list)
@@ -186,7 +193,7 @@
                        (values (cons p acc) (append (deps p) (cdr queue)))
                        (values acc (cdr queue))))
                  (list)
-                 (append pkgnames rdeps-res)))
+                 (append pkgnames (remove-duplicates rdeps-res))))
   deps-res)
 
 (define packages-to-prune
