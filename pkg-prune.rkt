@@ -203,9 +203,11 @@
 
 (define packages-to-prune
   (command-line #:program "pkg-prune.rkt"
+                #:usage-help
+                "note: pruning does not work with unspecified cyclic dependencies"
                 #:once-each
                 [("-o" "--use-oma")
-                 "Use `oma` implementation instead of packages.aosc.io"
+                 "Use `oma` implementation instead of querying packages.aosc.io"
                  (revdeps oma-revdeps)
                  (deps oma-deps)]
                 #:once-any
