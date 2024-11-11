@@ -172,16 +172,15 @@
 (define/contract (revdeps* pkgnames)
   (-> (listof string?) (listof string?))
   (append pkgnames
-          (remove-duplicates
-           (queue-foldl
-            (λ (acc queue)
-              (define p (car queue))
-              (define rdeps (memoized-revdeps p))
-              (if (or (null? rdeps) (andmap (λ (rd) (member rd acc)) rdeps))
-                  (values acc (cdr queue))
-                  (values (append rdeps acc) (append (cdr queue) rdeps))))
-            (list)
-            pkgnames))))
+          (queue-foldl
+           (λ (acc queue)
+             (define p (car queue))
+             (define rdeps (filter (λ (rd) (not (member rd acc))) (memoized-revdeps p)))
+             (if (null? rdeps)
+                 (values acc (cdr queue))
+                 (values (append rdeps acc) (append (cdr queue) rdeps))))
+           (list)
+           pkgnames)))
 
 ;; Recursively get newly orphaned packages with given packages to be pruned
 (define/contract (prune pkgnames)
@@ -200,17 +199,22 @@
 
 ;; Options
 (define rdeps-only (make-parameter #f))
+(define prune-only (make-parameter #f))
 
 (define packages-to-prune
   (command-line #:program "pkg-prune.rkt"
                 #:once-each
-                [("-r" "--rdeps-only")
-                 "Only get recursive reverse dependencies"
-                 (rdeps-only #t)]
                 [("-o" "--use-oma")
                  "Use `oma` implementation instead of packages.aosc.io"
                  (revdeps oma-revdeps)
                  (deps oma-deps)]
+                #:once-any
+                [("-r" "--rdeps-only")
+                 "Only get recursive reverse dependencies"
+                 (rdeps-only #t)]
+                [("-p" "--prune-only")
+                 "Only get to-be-orphaned dependencies"
+                 (prune-only #t)]
                 #:args pkgnames
                 (when (null? pkgnames)
                   (raise-user-error 'pkg-prune
@@ -220,4 +224,6 @@
 (for-each displayln
           (if (rdeps-only)
               (revdeps* packages-to-prune)
-              (prune (revdeps* packages-to-prune))))
+              (if (prune-only)
+                  (prune packages-to-prune)
+                  (prune (revdeps* packages-to-prune)))))
