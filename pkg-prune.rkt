@@ -93,7 +93,8 @@
                (extract-http-code header))))
   (flatten (for/list ([group (hash-ref json-res 'dependencies)])
              (if (or (equal? (hash-ref group 'relationship) "Breaks")
-                     (equal? (hash-ref group 'relationship) "Provides"))
+                     (equal? (hash-ref group 'relationship) "Provides")
+                     (equal? (hash-ref group 'relationship) "Replaces"))
                  (list)
                  (foldl (λ (p acc)
                           (define pname (list-ref p 0))
@@ -103,7 +104,7 @@
                         (list)
                         (hash-ref group 'packages))))))
 
-(define/contract (oma-rdeps pkgname)
+(define/contract (oma-revdeps pkgname)
   (-> string? (listof string?))
   (define-values (sp out in err)
     (subprocess #f #f #f "/usr/bin/oma" "rdepends" "--json" pkgname))
@@ -147,11 +148,10 @@
          (list)
          all-deps))
 
-;; Switch implementations here
-;(define revdeps packages-site-revdeps)
-;(define deps packages-site-deps)
-(define revdeps oma-rdeps)
-(define deps oma-deps)
+;; By default use packages site to retrieve information, oma implementation may
+;; fail due to removed packages still remaining in the repo.
+(define revdeps (make-parameter packages-site-revdeps))
+(define deps (make-parameter packages-site-deps))
 
 (define/contract (queue-foldl proc init lst)
   (-> (-> any/c list? (values any/c list?)) any/c list? any/c)
@@ -160,48 +160,64 @@
       acc
       (queue-foldl proc acc queue)))
 
+;; Memoization for optimizing speed where a dep is queried more than once
+(define revdeps-memo (make-hash))
+(define/contract (memoized-revdeps p)
+  (-> string? (listof string?))
+  (when (not (hash-has-key? revdeps-memo p))
+    (hash-set! revdeps-memo p ((revdeps) p)))
+  (hash-ref revdeps-memo p))
+
+;; Recursively get reverse dependency tree leaves
+(define/contract (revdeps* pkgnames)
+  (-> (listof string?) (listof string?))
+  (append pkgnames
+          (remove-duplicates
+           (queue-foldl
+            (λ (acc queue)
+              (define p (car queue))
+              (define rdeps (memoized-revdeps p))
+              (if (or (null? rdeps) (andmap (λ (rd) (member rd acc)) rdeps))
+                  (values acc (cdr queue))
+                  (values (append rdeps acc) (append (cdr queue) rdeps))))
+            (list)
+            pkgnames))))
+
+;; Recursively get newly orphaned packages with given packages to be pruned
 (define/contract (prune pkgnames)
   (-> (listof string?) (listof string?))
-  ; Memoization for optimizing speed where a dep is queried more than once
-  (define revdeps-memo (make-hash))
-  (define/contract (memoized-revdeps p)
-    (-> string? (listof string?))
-    (when (not (hash-has-key? revdeps-memo p))
-      (hash-set! revdeps-memo p (revdeps p)))
-    (hash-ref revdeps-memo p))
+  (queue-foldl (λ (acc queue)
+                 (define p (car queue))
+                 (define rdeps (memoized-revdeps p))
+                 (if (or (null? rdeps)
+                         (and (not (member p acc))
+                              (andmap (λ (rd) (member rd acc)) rdeps)))
+                     ; when all revdeps are in the to-be-pruned list
+                     (values (cons p acc) (append ((deps) p) (cdr queue)))
+                     (values acc (cdr queue))))
+               (list)
+               pkgnames))
 
-  ;; Recursively get reverse dependency tree leaves
-  (define rdeps-res
-    (queue-foldl (λ (acc queue)
-                   (define p (car queue))
-                   (define rdeps (memoized-revdeps p))
-                   (if (or (null? rdeps) (andmap (λ (rd) (member rd acc)) rdeps))
-                       (values acc (cdr queue))
-                       (values (append rdeps acc) (append (cdr queue) rdeps))))
-                 (list)
-                 pkgnames))
-
-  ;; Recursively get newly orphaned packages with given packages to be pruned
-  (define deps-res
-    (queue-foldl (λ (acc queue)
-                   (define p (car queue))
-                   (define rdeps (memoized-revdeps p))
-                   (if (or (null? rdeps)
-                           (and (not (member p acc))
-                                (andmap (λ (rd) (member rd acc)) rdeps)))
-                       ; when all revdeps are in the to-be-pruned list
-                       (values (cons p acc) (append (deps p) (cdr queue)))
-                       (values acc (cdr queue))))
-                 (list)
-                 (append pkgnames (remove-duplicates rdeps-res))))
-  deps-res)
+;; Options
+(define rdeps-only (make-parameter #f))
 
 (define packages-to-prune
   (command-line #:program "pkg-prune.rkt"
+                #:once-each
+                [("-r" "--rdeps-only")
+                 "Only get recursive reverse dependencies"
+                 (rdeps-only #t)]
+                [("-o" "--use-oma")
+                 "Use `oma` implementation instead of packages.aosc.io"
+                 (revdeps oma-revdeps)
+                 (deps oma-deps)]
                 #:args pkgnames
                 (when (null? pkgnames)
                   (raise-user-error 'pkg-prune
                                     "expects at least one package name"))
                 pkgnames))
 
-(for-each displayln (prune packages-to-prune))
+(for-each displayln
+          (if (rdeps-only)
+              (revdeps* packages-to-prune)
+              (prune (revdeps* packages-to-prune))))
