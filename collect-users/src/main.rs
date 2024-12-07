@@ -96,6 +96,7 @@ fn bootstrap(users: &mut Vec<String>) -> Result<()> {
                     users.push(user.to_string());
                 }
             }
+            break;
         }
     }
 
