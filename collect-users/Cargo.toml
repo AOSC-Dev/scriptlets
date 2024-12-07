@@ -1,0 +1,11 @@
+[package]
+name = "collect-users"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+walkdir = "2.5.0"
+anyhow = "1"
+reqwest = { version = "0.12", features = ["blocking"] }
+xz = "0.1.0"
+tar = "0.4"
