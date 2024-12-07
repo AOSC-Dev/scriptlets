@@ -8,7 +8,7 @@ use anyhow::{anyhow, Context, Result};
 use reqwest::blocking::ClientBuilder;
 use tar::Archive;
 use walkdir::WalkDir;
-use xz::read::XzDecoder;
+use xz2::read::XzDecoder;
 
 fn main() -> Result<()> {
     let tree = args().nth(1).context(format!(

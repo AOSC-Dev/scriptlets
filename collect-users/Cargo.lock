@@ -97,7 +97,7 @@ dependencies = [
  "reqwest",
  "tar",
  "walkdir",
- "xz",
+ "xz2",
 ]
 
 [[package]]
@@ -1487,15 +1487,6 @@ dependencies = [
  "libc",
  "linux-raw-sys",
  "rustix",
-]
-
-[[package]]
-name = "xz"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c887690ff2a2e233e8e49633461521f98ec57fbff9d59a884c9a4f04ec1da34"
-dependencies = [
- "xz2",
 ]
 
 [[package]]
