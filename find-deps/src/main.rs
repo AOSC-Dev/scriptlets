@@ -73,7 +73,7 @@ fn main() -> Result<()> {
 
     result
         .iter()
-        .filter(|x| (optenv32 && x.0.ends_with("+32")) || !optenv32)
+        .filter(|x| !optenv32 || x.0.ends_with("+32"))
         .filter(|x| (all_prefix || optenv32) || x.1.starts_with("/usr/lib"))
         .for_each(|x| {
             if print_paths {
