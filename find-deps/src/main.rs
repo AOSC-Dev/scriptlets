@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     io::BufRead,
     path::{Path, PathBuf},
-    process::Command,
+    process::{exit, Command},
 };
 
 use anyhow::{Context, Result};
@@ -42,6 +42,11 @@ fn main() -> Result<()> {
         .arg(path)
         .output()?;
 
+    if !cmd.status.success() {
+        eprint!("{}", String::from_utf8_lossy(&cmd.stderr));
+        exit(cmd.status.code().unwrap_or(1));
+    }
+
     let output = cmd.stdout.lines();
 
     let mut deps = vec![];
@@ -59,7 +64,7 @@ fn main() -> Result<()> {
             lib.strip_prefix('[')
                 .and_then(|x| x.strip_suffix(']'))
                 .context("Failed to parse readelf output")?
-                .to_string()
+                .to_string(),
         );
     }
 
@@ -103,9 +108,9 @@ fn main() -> Result<()> {
             }
         });
 
-        if oneline {
-            println!();
-        }
+    if oneline {
+        println!();
+    }
 
     Ok(())
 }
