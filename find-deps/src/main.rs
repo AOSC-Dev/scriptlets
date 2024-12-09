@@ -19,9 +19,12 @@ struct App {
     /// Only display +32 Package(s) result
     #[arg(long)]
     optenv32: bool,
-    // Allow search non /usr/lib path
+    /// Allow search non /usr/lib path
     #[arg(long)]
     all_prefix: bool,
+    /// Print result to one line
+    #[arg(long)]
+    oneline: bool,
 }
 
 fn main() -> Result<()> {
@@ -30,6 +33,7 @@ fn main() -> Result<()> {
         path,
         optenv32,
         all_prefix,
+        oneline,
     } = App::parse();
 
     let cmd = Command::new("readelf")
@@ -92,10 +96,16 @@ fn main() -> Result<()> {
         .for_each(|x| {
             if print_paths {
                 println!("{} ({})", x.0, x.1)
+            } else if oneline {
+                print!("{} ", x.0);
             } else {
                 println!("{}", x.0);
             }
         });
+
+        if oneline {
+            println!();
+        }
 
     Ok(())
 }
