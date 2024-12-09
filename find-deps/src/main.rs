@@ -1,6 +1,11 @@
-use std::{collections::HashMap, io::BufRead, path::PathBuf, process::Command};
+use std::{
+    collections::HashMap,
+    io::BufRead,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use oma_contents::searcher::{pure_search, ripgrep_search, Mode};
 
@@ -49,8 +54,8 @@ fn main() -> Result<()> {
         deps.push(
             lib.strip_prefix('[')
                 .and_then(|x| x.strip_suffix(']'))
-                .unwrap_or(lib)
-                .to_string(),
+                .context("Failed to parse readelf output")?
+                .to_string()
         );
     }
 
@@ -59,11 +64,15 @@ fn main() -> Result<()> {
     for dep in deps {
         if which::which("rg").is_ok() {
             ripgrep_search("/var/lib/apt/lists", Mode::Provides, &dep, |(pkg, path)| {
-                map.insert(pkg, path);
+                if path.ends_with(&format!("/{}", dep)) {
+                    map.insert(pkg, path);
+                }
             })?;
         } else {
             pure_search("/var/lib/apt/lists", Mode::Provides, &dep, |(pkg, path)| {
-                map.insert(pkg, path);
+                if path.ends_with(&format!("/{}", dep)) {
+                    map.insert(pkg, path);
+                }
             })?;
         };
     }
@@ -74,7 +83,12 @@ fn main() -> Result<()> {
     result
         .iter()
         .filter(|x| !optenv32 || x.0.ends_with("+32"))
-        .filter(|x| (all_prefix || optenv32) || x.1.starts_with("/usr/lib"))
+        .filter(|x| {
+            (all_prefix || optenv32)
+                || Path::new(&x.1)
+                    .parent()
+                    .is_some_and(|x| x.to_string_lossy() == "/usr/lib")
+        })
         .for_each(|x| {
             if print_paths {
                 println!("{} ({})", x.0, x.1)
