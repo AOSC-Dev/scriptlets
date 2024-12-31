@@ -6,7 +6,7 @@ KDE_QT_BANNED_MODULES=('qtcanvas3d' 'qtfeedback' 'qtpim' 'qtqa' 'qtrepotools' 'q
 # Catapult source repository.
 CATAPULT_REPO='https://chromium.googlesource.com/catapult'
 # QtWebEngine source repository.
-QTWEBENGINE_REPO='https://code.qt.io/qt/qtwebengine'
+QTWEBENGINE_REPO='https://github.com/qt/qtwebengine'
 # QtWebKit source archive
 QTWEBKIT_URL="https://github.com/qtwebkit/qtwebkit/releases/download/qtwebkit-${QTWEBKIT_VERSION}-alpha4/qtwebkit-${QTWEBKIT_VERSION}-alpha4.tar.xz"
 
