@@ -1,7 +1,7 @@
 use std::{
     collections::HashSet,
     fs::File,
-    io::{Read, Write},
+    io::{BufRead, BufReader, Write},
     path::Path,
 };
 
@@ -130,12 +130,10 @@ fn update_data(dir: &Path) -> Result<Vec<(String, String)>> {
                 .send()?
                 .error_for_status()?;
 
-            let bytes = resp.bytes()?;
-            let mut decoder = GzDecoder::new(&*bytes);
-            let mut s = String::new();
-            decoder.read_to_string(&mut s)?;
+            let reader = BufReader::new(GzDecoder::new(resp));
 
-            for i in s.lines() {
+            for i in reader.lines() {
+                let i = i?;
                 let (file, pkg) = i
                     .rsplit_once(|c: char| c.is_whitespace() && c != '\n')
                     .context("Failed to parse contents")?;
@@ -157,7 +155,6 @@ fn update_data(dir: &Path) -> Result<Vec<(String, String)>> {
         })
         .flatten()
         .collect::<Vec<_>>();
-
 
     let mut f = File::create(dir.join("spiral_data"))?;
     let ser = bincode::serialize(&res)?;
