@@ -11,7 +11,10 @@ use dirs_next::cache_dir;
 use fancy_regex::Regex;
 use flate2::read::GzDecoder;
 use log::info;
-use oma_contents::searcher::{search, Mode};
+use oma_contents::{
+    parser::parse_contents_single_line,
+    searcher::{search, Mode},
+};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use reqwest::blocking::ClientBuilder;
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
@@ -134,11 +137,8 @@ fn update_data(dir: &Path) -> Result<Vec<(String, String)>> {
 
             for i in reader.lines() {
                 let i = i?;
-                let (file, pkg) = i
-                    .rsplit_once(|c: char| c.is_whitespace() && c != '\n')
-                    .context("Failed to parse contents")?;
+                let (file, pkgs) = parse_contents_single_line(&i)?;
                 if re.is_match(file)? {
-                    let pkgs = pkg.split(',');
                     for p in pkgs {
                         res.push((
                             file.trim().to_string(),

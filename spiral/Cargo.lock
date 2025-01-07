@@ -979,9 +979,9 @@ dependencies = [
 
 [[package]]
 name = "oma-contents"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc1ba2e38b27a316cdfb171b7a9a9026bd5a58d28cd6ac0216a7fb25c9a1339c"
+checksum = "ebfadc73cad91032798e19290325addf22c1dd0ddb70dd5c66882f57d2bfb1ca"
 dependencies = [
  "chrono",
  "flate2",
