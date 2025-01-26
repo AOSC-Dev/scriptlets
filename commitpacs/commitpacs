@@ -48,7 +48,9 @@ commitPkg() {
     fi
 
     local message
-    message="$pkg: ${commitTemplate//\$VER/${pkgVer}}"
+    message="$pkg: ${commitTemplate}"
+    message="${message//\{PKGNAME\}/${pkg}}"
+    message="${message//\{PKGVER\}/${pkgVer}}"
 
     log "[$pkg] $message"
     git add "$pkgDir"
@@ -91,6 +93,8 @@ u | upd | update)
     ;;
 esac
 shift
+
+commitTemplate="${commitTemplate#\?\: }"
 
 declare -a pkgs
 if [[ $# == 0 ]]; then
