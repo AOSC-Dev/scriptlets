@@ -82,11 +82,11 @@ declare commitTemplate
 case "$1" in
 n | new)
     # shellcheck disable=SC2016
-    commitTemplate='new, $VER'
+    commitTemplate='new, {PKGVER}'
     ;;
 u | upd | update)
     # shellcheck disable=SC2016
-    commitTemplate='update to $VER'
+    commitTemplate='update to {PKGVER}'
     ;;
 *)
     commitTemplate="$1"
