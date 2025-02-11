@@ -216,7 +216,8 @@ def get_package_version(package_path: str, defines_path: str) -> str:
 
 # Get reverse library dependency for specified package
 def get_revdeps(
-    package_name: str, alldeps: bool, include: list[str], exclude: list[str]
+    package_name: str, alldeps: bool, include: list[str], exclude: list[str],
+    sorevdeps: list[str]
 ) -> list[dict[str, str]]:
     revdeps_list = []
     try:
@@ -225,20 +226,28 @@ def get_revdeps(
         )
         response.raise_for_status()
         package_info = response.json()
-        revdeps_list = [
-            package
-            for group in package_info["sobreaks"]
-            for package in group
-            if package not in revdeps_list
-        ]
-        if package_info["sobreaks_circular"] != None:
-            revdeps_list += package_info["sobreaks_circular"]
-        if alldeps:
-            revdeps_list += [
-                package["package"]
-                for group in package_info["revdeps"]
-                for package in group["deps"]
-                if package["package"] not in revdeps_list
+        if sorevdeps is None:
+            revdeps_list = [
+                package
+                for group in package_info["sobreaks"]
+                for package in group
+                if package not in revdeps_list
+            ]
+            if package_info["sobreaks_circular"] != None:
+                revdeps_list += package_info["sobreaks_circular"]
+            if alldeps:
+                revdeps_list += [
+                    package["package"]
+                    for group in package_info["revdeps"]
+                    for package in group["deps"]
+                    if package["package"] not in revdeps_list
+                ]
+        else:
+            revdeps_list = [
+                package
+                for soname in sorevdeps
+                for package in package_info["sorevdeps"][soname]
+                if package not in revdeps_list
             ]
     except:
         logger.warning(
@@ -404,6 +413,9 @@ def main():
         "-p", "--pkgbreak", action="store_true", help="Generate PKGBREAK"
     )
     parser.add_argument(
+        "-s", "--sorevdeps", nargs="+", help="Use specific soname to generate reverse dependencies"
+    )
+    parser.add_argument(
         "-b",
         "--bump",
         action="store_true",
@@ -438,7 +450,8 @@ def main():
     package_path, defines_path = search_package_path(args.package)
     version = get_package_version(package_path, defines_path)
 
-    revdeps = get_revdeps(args.package, args.alldeps, args.include, args.exclude)
+    revdeps = get_revdeps(args.package, args.alldeps, args.include,
+                          args.exclude, args.sorevdeps)
 
     if args.rebuilds:
         revdeps_path_list_str = gen_rebuilds_list_string(revdeps, args)
