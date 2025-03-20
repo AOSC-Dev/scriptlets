@@ -21,10 +21,14 @@ abinfo() { echo -e "[\e[96mINFO\e[0m]:  \e[1m$*\e[0m"; }
 abdbg()  { echo -e "[\e[32mDEBUG\e[0m]: \e[1m$*\e[0m"; }
 
 _convert_loong64() {
+	PKG_PATH=$(realpath $1)
+ 	PKG_NAME=$(dpkg-deb -f "$PKG_PATH" Package)
+  	VERSION=$(dpkg-deb -f "$PKG_PATH" Version)
+  	HERE=$(basename $1)
 	abinfo "Examining package information: $1 ..."
-	dpkg -I "$SRCDIR"/$1 || \
+	dpkg -I "$PKG_PATH" || \
 		aberr "Invalid dpkg package: control (metadata) archive not found: $?"
-	CONTROL_EXT="$(ar t "$SRCDIR"/$1 | grep control.tar* | cut -f3 -d'.')"
+	CONTROL_EXT="$(ar t "$PKG_PATH" | grep control.tar* | cut -f3 -d'.')"
 	case "${CONTROL_EXT}" in
 		gz)
 			TAR_COMP_FLAG="z"
@@ -47,7 +51,7 @@ _convert_loong64() {
 	cd $(mktemp -d) || \
 		aberr "Failed to create temporary directory to unpack $1: $?."
 	DEBDIR="$(pwd)"
-	ar xv "$SRCDIR"/$1 || \
+	ar xv "$PKG_PATH" || \
 		aberr "Failed to unpack $1: $?."
 
 	abinfo "Unpacking metadata archive: $1 ..."
@@ -63,6 +67,13 @@ _convert_loong64() {
 	sed -e 's|^Architecture: loongarch64$|Architecture: loong64|g' \
 	    -i "$DEBDIR"/metadata/control
 
+        if grep -q "Depends:" "$DEBDIR"/metadata/control; then
+	    	sed -i '/Depends:/ s/$/, liblol/' "$DEBDIR"/metadata/control
+        else
+   		echo "Depends: liblol" >> "$DEBDIR"/metadata/control
+        fi
+
+
 	abinfo "Building metadata archive (control.tar.${CONTROL_EXT}): $1 ..."
 	cd "$DEBDIR"/metadata
 	tar cvf${TAR_COMP_FLAG} "$DEBDIR"/control.tar."${CONTROL_EXT}" * || \
@@ -70,7 +81,7 @@ _convert_loong64() {
 	cd "$DEBDIR"
 
 	abinfo "Rebuilding dpkg package $1: loong64 ..."
-	ar rv "$SRCDIR"/$1 control.tar.${CONTROL_EXT} || \
+	ar rv "$PKG_PATH" control.tar.${CONTROL_EXT} || \
 		aberr "Failed to rebuild dpkg package $1: $?."
 
         #abinfo "Cleaning up: $1 ..."
@@ -79,7 +90,7 @@ _convert_loong64() {
 	abinfo """Your requested package:
 
     $1
-
+    mv $1 $HERE/${PKG_NAME}_${VERSION}_loong64.deb
 Has been successfully converted as a loong64 package!
 
 However, you may still need to install libLoL for old-world applications to
