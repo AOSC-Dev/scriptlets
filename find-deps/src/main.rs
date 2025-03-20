@@ -75,7 +75,8 @@ fn main() -> Result<()> {
             if path.ends_with(&format!("/{}", dep)) {
                 map.insert(pkg, path);
             }
-        })?;
+        })
+        .ok();
     }
 
     let mut result = map.into_iter().collect::<Vec<_>>();
