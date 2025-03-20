@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use oma_contents::searcher::{pure_search, ripgrep_search, Mode};
+use oma_contents::searcher::{self, Mode};
 
 #[derive(Debug, Parser)]
 struct App {
@@ -71,19 +71,11 @@ fn main() -> Result<()> {
     let mut map: HashMap<String, String> = HashMap::new();
 
     for dep in deps {
-        if which::which("rg").is_ok() {
-            ripgrep_search("/var/lib/apt/lists", Mode::Provides, &dep, |(pkg, path)| {
-                if path.ends_with(&format!("/{}", dep)) {
-                    map.insert(pkg, path);
-                }
-            })?;
-        } else {
-            pure_search("/var/lib/apt/lists", Mode::Provides, &dep, |(pkg, path)| {
-                if path.ends_with(&format!("/{}", dep)) {
-                    map.insert(pkg, path);
-                }
-            })?;
-        };
+        searcher::search("/var/lib/apt/lists", Mode::Provides, &dep, |(pkg, path)| {
+            if path.ends_with(&format!("/{}", dep)) {
+                map.insert(pkg, path);
+            }
+        })?;
     }
 
     let mut result = map.into_iter().collect::<Vec<_>>();
