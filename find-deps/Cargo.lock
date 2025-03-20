@@ -252,7 +252,6 @@ dependencies = [
  "anyhow",
  "clap",
  "oma-contents",
- "which",
 ]
 
 [[package]]
