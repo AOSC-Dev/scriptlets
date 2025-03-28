@@ -46,7 +46,7 @@ for i in $@; do
 	echo "Adjusting topic repository for Ciel: $i ..."
 	mv -v OUTPUT-$i/*/*/*/main \
 		OUTPUT-$i/
-	rm -v OUTPUT-$i/debs
+	rm -rv OUTPUT-$i/debs
 	mv -v OUTPUT-$i/main \
 		OUTPUT-$i/debs
 done
