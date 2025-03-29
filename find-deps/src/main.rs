@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     io::BufRead,
     path::{Path, PathBuf},
-    process::{exit, Command},
+    process::{Command, exit},
 };
 
 use anyhow::{Context, Result};
@@ -68,12 +68,12 @@ fn main() -> Result<()> {
         );
     }
 
-    let mut map: HashMap<String, String> = HashMap::new();
+    let mut map: HashMap<String, Vec<String>> = HashMap::new();
 
     for dep in deps {
         searcher::search("/var/lib/apt/lists", Mode::Provides, &dep, |(pkg, path)| {
             if path.ends_with(&format!("/{}", dep)) {
-                map.insert(pkg, path);
+                map.entry(pkg).or_default().push(path);
             }
         })
         .ok();
@@ -87,13 +87,14 @@ fn main() -> Result<()> {
         .filter(|x| !optenv32 || x.0.ends_with("+32"))
         .filter(|x| {
             (all_prefix || optenv32)
-                || Path::new(&x.1)
-                    .parent()
-                    .is_some_and(|x| x.to_string_lossy() == "/usr/lib")
+                || x.1.iter().map(|p| Path::new(p)).any(|x| {
+                    x.parent()
+                        .is_some_and(|x| x.to_string_lossy() == "/usr/lib")
+                })
         })
         .for_each(|x| {
             if print_paths {
-                println!("{} ({})", x.0, x.1)
+                println!("{} [{}]", x.0, x.1.join(","))
             } else if oneline {
                 print!("{} ", x.0);
             } else {
