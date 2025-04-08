@@ -200,6 +200,7 @@
 ;; Options
 (define rdeps-only (make-parameter #f))
 (define prune-only (make-parameter #f))
+(define result-only (make-parameter #f))
 
 (define packages-to-prune
   (command-line #:program "pkg-prune.rkt"
@@ -210,6 +211,9 @@
                  "Use `oma` implementation instead of querying packages.aosc.io"
                  (revdeps oma-revdeps)
                  (deps oma-deps)]
+                [("-t" "--result-only")
+                 "Do NOT include given packages in the result"
+                 (result-only #t)]
                 #:once-any
                 [("-r" "--rdeps-only")
                  "Only get recursive reverse dependencies"
@@ -223,9 +227,14 @@
                                     "expects at least one package name"))
                 pkgnames))
 
+(define result
+  (if (rdeps-only)
+      (revdeps* packages-to-prune)
+      (if (prune-only)
+          (prune packages-to-prune)
+          (prune (revdeps* packages-to-prune)))))
+
 (for-each displayln
-          (if (rdeps-only)
-              (revdeps* packages-to-prune)
-              (if (prune-only)
-                  (prune packages-to-prune)
-                  (prune (revdeps* packages-to-prune)))))
+          (if (result-only)
+              (filter (λ (p) (not (member p packages-to-prune))) result)
+              result))
