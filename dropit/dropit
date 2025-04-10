@@ -1,6 +1,7 @@
 #!/usr/bin/bash
 # SPDX-License-Identifier: GPL-3.0
 # Author: xtex <xtex@xtexx.eu.org>
+# Contributor: Kaiyang Wu <origincode@aosc.io>
 
 set -Eeuo pipefail
 trap 'errorHandler "$?" "${FUNCNAME[0]}" "$LINENO"' ERR
@@ -33,7 +34,12 @@ Usage: $0 [OPTIONS] <PACKAGES>...
 Options:
     -? --help: Show usage
     -f --force: Drop without considering reverse deps
-    -d --withdeps: Also drop all reverse deps
+    --force-all: Kill the world (implies --force)
+    -d --rdeps: Also drop all reverse deps
+    -p --prune: Also drop all reverse deps and prune the dependency tree (implies --rdeps --pkg-prune)
+    --pkg-prune: Use pkg-prune.rkt to query deps
+    -o --oma: Use oma to query deps (implies --pkg-prune)
+    -r: Collect remaining usages of dropped packages
     -m <MESSAGE>: Append a reason to commit message
 EOF
     exit
@@ -41,12 +47,10 @@ EOF
 
 declare -a dropWaitingList=()
 declare commitMessage="drop"
-declare forceDrop="" dropRevDeps=""
-declare remainingUsagesFile=""
-
-getPackageSiteJson() {
-    curl -SL --retry 3 "https://packages.aosc.io/packages/$1?type=json"
-}
+declare forceDrop="" forceAll=""
+declare dropRevDeps="" dropNewOrphans=""
+declare usePkgPrune="" useOma=""
+declare collectRemainingUsages=""
 
 getSpecPath() {
     echo "$(getPkgDir "$1")/spec"
@@ -59,8 +63,28 @@ getPkgDir() {
 }
 
 getRevDeps() {
-    oma rdepends "$1" | (grep -E '    Depends: ([^ ]*) \(' -o || true) | cut -d' ' -f6 |
-        (grep -xv "$1-dbg" || true)
+    if [[ -n "$usePkgPrune" ]]; then
+        if [[ -n "$useOma" ]]; then
+            "$pkgPrunePath" -ro "$1"
+        else
+            "$pkgPrunePath" -r "$1"
+        fi
+    else
+        oma rdepends "$1" --json | jq -r '(.rdeps["Depends"] // []) | flatten | map(select(.name | endswith("-dbg") | not)) 
+            | map(.name) | sort | unique | .[]'
+    fi
+}
+
+getPruningPackages() {
+    if [[ -n "$usePkgPrune" ]]; then
+        if [[ -n "$useOma" ]]; then
+            "$pkgPrunePath" -o "$1"
+        else
+            "$pkgPrunePath" "$1"
+        fi
+    else
+        die "oma does not support collecting orphan packages"
+    fi
 }
 
 isGitWorkTreeDirty() {
@@ -77,6 +101,66 @@ removePackageFromGroup() {
 
 dropIt() {
     local pkg="$1"
+
+    local pkgDir
+    pkgDir="$(getPkgDir "$pkg")"
+    if [[ -z "$pkgDir" ]]; then
+        log "[$pkg] Package is already dropped"
+        return 0
+    fi
+
+    if [[ -n "$dropNewOrphans" ]]; then
+        local -a packageList
+        readarray -t packageList < <(getPruningPackages "$pkg")
+        log "[$pkg] Packages to drop (${#packageList[@]}): ${packageList[*]}"
+        for pkg in "${packageList[@]}"; do
+            log "[$pkg] Dropping package: $pkg"
+            dropPkg "$pkg"
+        done
+        log "[$pkg] Dropped ${#packageList[@]} packages"
+    else
+        local -a rdeps
+        readarray -t rdeps < <(getRevDeps "$pkg")
+        if [[ -n "$usePkgPrune" ]]; then
+            local rdepsCount="${#rdeps[@]}"
+            rdepsCount="$((rdepsCount - 1))"
+            log "[$pkg] Packages to be dropped ($rdepsCount reverse deps): ${rdeps[*]}"
+            if [[ "$rdepsCount" != 0 ]]; then
+                if [[ -n "$dropRevDeps" ]]; then
+                    for rdep in "${rdeps[@]}"; do
+                        [[ "$rdep" != "$pkg" ]] || continue
+                        log "[$pkg] Dropping reverse dep: $rdep"
+                        dropPkg "$rdep"
+                    done
+                    log "[$pkg] Dropped $rdepsCount reverse deps"
+                elif [[ -n "$forceDrop" ]]; then
+                    log "[$pkg] Ignoring reverse deps"
+                else
+                    die "[$pkg] Dropping may break reverse dependencies"
+                fi
+            fi
+        else
+            log "[$pkg] Reverse dependencies (${#rdeps[@]}): ${rdeps[*]}"
+            if [[ "${#rdeps[@]}" != 0 ]]; then
+                if [[ -n "$dropRevDeps" ]]; then
+                    for rdep in "${rdeps[@]}"; do
+                        log "[$pkg] Dropping rev dep: $rdep"
+                        dropIt "$rdep"
+                    done
+                    log "[$pkg] Dropped ${#rdeps[@]} reverse deps"
+                elif [[ -n "$forceDrop" ]]; then
+                    log "[$pkg] Ignoring reverse deps"
+                else
+                    die "[$pkg] Dropping may break reverse dependencies"
+                fi
+            fi
+        fi
+        dropPkg "$pkg"
+    fi
+}
+
+dropPkg() {
+    local pkg="$1"
     local -a commitPaths
 
     local pkgDir
@@ -86,26 +170,9 @@ dropIt() {
         return 0
     fi
 
-    case "$pkg" in *-base) die "[$pkg] Could not be drop because it is a base package" ;; esac
+    [[ -n "$forceAll" ]] || case "$pkg" in *-base) die "[$pkg] Could not be drop because it is a base package" ;; esac
 
     log "[$pkg] Dropping package: $pkg"
-
-    local -a rdeps
-    readarray -t rdeps < <(getRevDeps "$pkg")
-    log "[$pkg] Reverse dependencies (${#rdeps[@]}): ${rdeps[*]}"
-    if [[ "${#rdeps[@]}" != 0 ]]; then
-        if [[ -n "$dropRevDeps" ]]; then
-            for rdep in "${rdeps[@]}"; do
-                log "[$pkg] Dropping rev dep: $rdep"
-                dropIt "$rdep"
-            done
-            log "[$pkg] Dropped all ${#rdeps[@]} reverse deps"
-        elif [[ -n "$forceDrop" ]]; then
-            log "[$pkg] Ignoring reverse deps"
-        else
-            die "[$pkg] Dropping may break reverse dependencies"
-        fi
-    fi
 
     log "[$pkg] Removing directory: $pkgDir"
     git rm -rfq "$pkgDir"
@@ -132,11 +199,13 @@ dropIt() {
         --oneline -1 --no-decorate --color=always)"
     log "[$pkg] $commitLog"
 
-    log "[$pkg] Collecting remaining uses ..."
-    rg "$pkg" \
-        -g !groups/ \
-        --color=always \
-        -m8 -M60 --column --heading >>"$remainingUsagesFile"
+    if [[ -n "$collectRemainingUsages" ]]; then
+        log "[$pkg] Collecting remaining usages ..."
+        rg "$pkg" \
+            -g !groups/ \
+            --color=always \
+            -m8 -M60 --column --heading >>"$remainingUsagesFile"
+    fi
 
     log "[$pkg] SUCCESS!"
 }
@@ -149,8 +218,27 @@ while [ $# -ne 0 ]; do
     -f | --force)
         forceDrop=true
         ;;
-    -d | --withdeps)
+    --force-all)
+        forceDrop=true
+        forceAll=true
+        ;;
+    -d | --rdeps)
         dropRevDeps=true
+        ;;
+    -p | --prune)
+        dropRevDeps=true
+        usePkgPrune=true
+        dropNewOrphans=true
+        ;;
+    --pkg-prune)
+        usePkgPrune=true
+        ;;
+    -o | --oma)
+        usePkgPrune=true
+        useOma=true
+        ;;
+    -r)
+        collectRemainingUsages=true
         ;;
     -m)
         commitMessage+=", $2"
@@ -165,7 +253,17 @@ done
 
 [[ "${#dropWaitingList[@]}" != 0 ]] || die "No packages to drop"
 
-remainingUsagesFile="$(mktemp --suffix=.txt --tmpdir dropit.remusg.XXX)"
+if [[ -n "$collectRemainingUsages" ]]; then
+    declare remainingUsagesFile
+    remainingUsagesFile="$(mktemp --suffix=.txt --tmpdir dropit.remusg.XXX)"
+fi
+
+if [[ -n "$usePkgPrune" ]]; then
+    declare pkgPrunePath
+    pkgPrunePath="$(dirname "$(realpath "$0")")/../pkg-prune.rkt"
+    command -v racket &>/dev/null || die "racket is not installed"
+    log "[*] Found pkg-prune.rkt: $pkgPrunePath"
+fi
 
 for pkg in "${dropWaitingList[@]}"; do
     if ! dropIt "$pkg"; then
@@ -173,4 +271,6 @@ for pkg in "${dropWaitingList[@]}"; do
     fi
 done
 
-log "[*] To show remaining references: cat $remainingUsagesFile"
+if [[ -n "$collectRemainingUsages" ]]; then
+    log "[*] To show remaining references: cat $remainingUsagesFile"
+fi
