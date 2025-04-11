@@ -144,7 +144,7 @@ dropIt() {
             if [[ "${#rdeps[@]}" != 0 ]]; then
                 if [[ -n "$dropRevDeps" ]]; then
                     for rdep in "${rdeps[@]}"; do
-                        log "[$pkg] Dropping rev dep: $rdep"
+                        log "[$pkg] Dropping reverse dep: $rdep"
                         dropIt "$rdep"
                     done
                     log "[$pkg] Dropped ${#rdeps[@]} reverse deps"
