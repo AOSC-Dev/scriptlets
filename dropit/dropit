@@ -253,6 +253,10 @@ done
 
 [[ "${#dropWaitingList[@]}" != 0 ]] || die "No packages to drop"
 
+if isGitWorkTreeDirty; then
+    die "Git working tree is dirty"
+fi
+
 if [[ -n "$collectRemainingUsages" ]]; then
     declare remainingUsagesFile
     remainingUsagesFile="$(mktemp --suffix=.txt --tmpdir dropit.remusg.XXX)"
