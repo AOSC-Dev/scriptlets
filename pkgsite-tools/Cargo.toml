@@ -1,0 +1,18 @@
+[package]
+name = "pkgsite-tools"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Kaiyang Wu <origincode@aosc.io>"]
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+reqwest = { version = "0.12", features = ["json"] }
+anyhow = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+itertools = "0.14.0"
+
+[[bin]]
+name = "pkgsite"
+path = "src/main.rs"
