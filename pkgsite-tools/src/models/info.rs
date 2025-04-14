@@ -75,7 +75,7 @@ Source: ({}) {}{}",
                 String::new()
             } else {
                 format!(
-                    "\nErrors: {}",
+                    "\nErrors:\n{}",
                     &self
                         .errors
                         .iter()

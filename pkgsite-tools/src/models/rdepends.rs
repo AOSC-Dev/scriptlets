@@ -117,7 +117,7 @@ impl Display for RDepends {
                 String::new()
             } else {
                 format!(
-                    "Reverse dependencies of the libraries:\n{}",
+                    "\nReverse dependencies of the libraries:\n{}",
                     &self
                         .sorevdeps
                         .iter()
