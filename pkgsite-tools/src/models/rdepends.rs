@@ -85,18 +85,20 @@ impl Display for RDepends {
             if self.revdeps.is_empty() {
                 String::new()
             } else {
-                self
-                    .revdeps
-                    .iter()
-                    .map(|revdep| revdep.to_string())
-                    .collect::<Vec<String>>()
-                    .join("\n")
+                format!(
+                    "{}\n",
+                    self.revdeps
+                        .iter()
+                        .map(|revdep| revdep.to_string())
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                )
             },
             if self.sobreaks.is_empty() {
                 String::new()
             } else {
                 format!(
-                    "{}\n",
+                    "\nLibrary depended by:\n{}\n",
                     &self
                         .sobreaks
                         .iter()
