@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 authors = ["Kaiyang Wu <origincode@aosc.io>"]
+description = "Get package information from packages.aosc.io"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
