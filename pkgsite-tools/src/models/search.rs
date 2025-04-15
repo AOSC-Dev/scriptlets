@@ -1,7 +1,7 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 use console::style;
 use regex::{Captures, Regex};
-use reqwest;
+use reqwest::{Client, StatusCode, redirect::Policy};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -20,14 +20,39 @@ pub struct Search {
 }
 
 impl Search {
-    pub async fn fetch(pattern: &str) -> Result<Self> {
-        Ok(reqwest::get(format!(
-            "{}/search?q={}&type=json",
-            PACKAGES_SITE_URL, pattern
-        ))
-        .await?
-        .json::<Self>()
-        .await?)
+    pub async fn fetch(pattern: &str) -> Result<Box<dyn ToString>> {
+        let client = Client::builder().redirect(Policy::none()).build()?;
+        let response = client
+            .get(format!(
+                "{}/search?q={}&type=json",
+                PACKAGES_SITE_URL, pattern
+            ))
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::OK => Ok(Box::new(response.json::<Self>().await?)),
+            StatusCode::SEE_OTHER => {
+                let package = response
+                    .headers()
+                    .get("location")
+                    .unwrap()
+                    .to_str()?
+                    .strip_prefix("/packages/")
+                    .unwrap()
+                    .to_string();
+                Ok(Box::new(format!(
+                    "Found an exact match:\n{}",
+                    super::info::Info::fetch(&[package])
+                        .await?
+                        .iter()
+                        .map(|res| res.to_string())
+                        .collect::<Vec<String>>()
+                        .join("\n\n"),
+                )))
+            }
+            _ => bail!("Error searching for packages"),
+        }
     }
 }
 
