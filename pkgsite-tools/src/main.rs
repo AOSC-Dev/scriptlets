@@ -5,7 +5,7 @@ mod cli;
 mod models;
 
 use cli::*;
-use pkgsite_tools::dedup_packages;
+use pkgsite_tools::{dedup_packages, print_res};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -14,43 +14,16 @@ async fn main() -> Result<()> {
     match args.subcommands {
         Some(cmd) => match cmd {
             Subcommands::Depends { packages } => {
-                println!(
-                    "{}",
-                    models::depends::Depends::fetch(&dedup_packages(packages))
-                        .await?
-                        .iter()
-                        .map(|(pkg, res)| format!("{}:\n{}", pkg, res))
-                        .collect::<Vec<String>>()
-                        .join("\n\n")
-                );
+                print_res!(annotated models::depends::Depends, packages);
             }
             Subcommands::Rdepends { packages } => {
-                println!(
-                    "{}",
-                    models::rdepends::RDepends::fetch(&dedup_packages(packages))
-                        .await?
-                        .iter()
-                        .map(|(pkg, res)| format!("{}:\n{}", pkg, res))
-                        .collect::<Vec<String>>()
-                        .join("\n\n")
-                );
+                print_res!(annotated models::rdepends::RDepends, packages);
             }
             Subcommands::Show { packages } => {
-                println!(
-                    "{}",
-                    models::info::Info::fetch(&dedup_packages(packages))
-                        .await?
-                        .iter()
-                        .map(|res| res.to_string())
-                        .collect::<Vec<String>>()
-                        .join("\n\n")
-                );
+                print_res!(unannotated models::info::Info, packages);
             }
             Subcommands::Search { pattern } => {
-                println!(
-                    "{}",
-                    models::search::Search::fetch(&pattern).await?.to_string()
-                );
+                print_res!(single models::search::Search, pattern);
             }
         },
         None => unreachable!(),
