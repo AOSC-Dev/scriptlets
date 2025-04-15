@@ -22,8 +22,11 @@ async fn main() -> Result<()> {
             Subcommands::Show { packages } => {
                 print_res!(unannotated models::info::Info, packages);
             }
-            Subcommands::Search { pattern } => {
-                print_res!(single models::search::Search, pattern);
+            Subcommands::Search {
+                pattern,
+                search_only,
+            } => {
+                print_res!(single models::search::Search, pattern, search_only);
             }
         },
         None => unreachable!(),

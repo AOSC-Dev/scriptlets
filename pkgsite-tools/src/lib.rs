@@ -8,10 +8,10 @@ pub fn dedup_packages(packages: Vec<String>) -> Vec<String> {
 
 #[macro_export]
 macro_rules! print_res {
-    ( unannotated $struct:ty, $args:expr ) => {
+    ( unannotated $struct:ty, $($arg:expr), * ) => {
         println!(
             "{}",
-            <$struct>::fetch(&dedup_packages($args))
+            <$struct>::fetch(&dedup_packages($($arg), *))
                 .await?
                 .iter()
                 .map(|res| res.to_string())
@@ -20,10 +20,10 @@ macro_rules! print_res {
         );
     };
 
-    ( annotated $struct:ty, $args:expr ) => {
+    ( annotated $struct:ty, $($arg:expr), * ) => {
         println!(
             "{}",
-            <$struct>::fetch(&dedup_packages($args))
+            <$struct>::fetch(&dedup_packages($($arg), *))
                 .await?
                 .iter()
                 .map(|(pkg, res)| format!("{}:\n{}", pkg, res))
@@ -32,7 +32,7 @@ macro_rules! print_res {
         );
     };
 
-    ( single $struct:ty, $arg:expr ) => {
-        println!("{}", <$struct>::fetch(&$arg).await?.to_string());
+    ( single $struct:ty, $($arg:expr), * ) => {
+        println!("{}", <$struct>::fetch(&$($arg), *).await?.to_string());
     };
 }

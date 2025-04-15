@@ -19,5 +19,9 @@ pub enum Subcommands {
     #[command(visible_alias = "info")]
     Show { packages: Vec<String> },
     /// Search for packages
-    Search { pattern: String },
+    Search {
+        pattern: String,
+        #[arg(long, short, visible_alias = "no-redir")]
+        search_only: bool,
+    },
 }

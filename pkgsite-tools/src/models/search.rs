@@ -20,12 +20,14 @@ pub struct Search {
 }
 
 impl Search {
-    pub async fn fetch(pattern: &str) -> Result<Box<dyn ToString>> {
+    pub async fn fetch(pattern: &str, noredir: bool) -> Result<Box<dyn ToString>> {
         let client = Client::builder().redirect(Policy::none()).build()?;
         let response = client
             .get(format!(
-                "{}/search?q={}&type=json",
-                PACKAGES_SITE_URL, pattern
+                "{}/search?q={}&type=json{}",
+                PACKAGES_SITE_URL,
+                pattern,
+                if noredir { "&noredir=true" } else { "" }
             ))
             .send()
             .await?;
@@ -42,7 +44,7 @@ impl Search {
                     .unwrap()
                     .to_string();
                 Ok(Box::new(format!(
-                    "Found an exact match:\n{}",
+                    "Found an exact match:\n(append --search-only to search the keyword instead)\n\n{}",
                     super::info::Info::fetch(&[package])
                         .await?
                         .iter()
