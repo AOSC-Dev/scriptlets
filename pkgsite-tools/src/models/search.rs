@@ -1,5 +1,5 @@
 use anyhow::{Result, bail};
-use console::style;
+use console::{Alignment, measure_text_width, pad_str, style};
 use regex::{Captures, Regex};
 use reqwest::{Client, StatusCode, redirect::Policy};
 use serde::{Deserialize, Serialize};
@@ -81,12 +81,12 @@ impl Display for Search {
 
         let max_pkgname_width = packages
             .iter()
-            .map(|pkg| pkg.name_highlight.len())
+            .map(|pkg| measure_text_width(&pkg.name_highlight))
             .max()
             .unwrap_or(10);
         let max_version_width = packages
             .iter()
-            .map(|pkg| pkg.full_version.len())
+            .map(|pkg| measure_text_width(&pkg.full_version))
             .max()
             .unwrap_or(10);
 
@@ -96,12 +96,20 @@ impl Display for Search {
             packages
                 .iter()
                 .map(|pkg| format!(
-                    "{: <name_width$}{: <version_width$}{}",
-                    pkg.name_highlight,
-                    pkg.full_version,
+                    "{}{}{}",
+                    pad_str(
+                        &pkg.name_highlight,
+                        max_pkgname_width + 4,
+                        Alignment::Left,
+                        None
+                    ),
+                    pad_str(
+                        &pkg.full_version,
+                        max_version_width + 4,
+                        Alignment::Left,
+                        None
+                    ),
                     pkg.desc_highlight,
-                    name_width = max_pkgname_width + 4,
-                    version_width = max_version_width + 4,
                 ))
                 .collect::<Vec<String>>()
                 .join("\n")
