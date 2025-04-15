@@ -18,4 +18,6 @@ pub enum Subcommands {
     /// Get package information
     #[command(visible_alias = "info")]
     Show { packages: Vec<String> },
+    /// Search for packages
+    Search { pattern: String },
 }

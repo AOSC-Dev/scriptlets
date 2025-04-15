@@ -1,15 +1,11 @@
 use anyhow::Result;
 use clap::Parser;
-use itertools::Itertools;
 
 mod cli;
 mod models;
 
 use cli::*;
-
-fn dedup_packages(packages: Vec<String>) -> Vec<String> {
-    packages.into_iter().dedup().collect::<Vec<String>>()
-}
+use pkgsite_tools::dedup_packages;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,7 +22,7 @@ async fn main() -> Result<()> {
                         .map(|(pkg, res)| format!("{}:\n{}", pkg, res))
                         .collect::<Vec<String>>()
                         .join("\n\n")
-                )
+                );
             }
             Subcommands::Rdepends { packages } => {
                 println!(
@@ -37,7 +33,7 @@ async fn main() -> Result<()> {
                         .map(|(pkg, res)| format!("{}:\n{}", pkg, res))
                         .collect::<Vec<String>>()
                         .join("\n\n")
-                )
+                );
             }
             Subcommands::Show { packages } => {
                 println!(
@@ -48,6 +44,12 @@ async fn main() -> Result<()> {
                         .map(|res| res.to_string())
                         .collect::<Vec<String>>()
                         .join("\n\n")
+                );
+            }
+            Subcommands::Search { pattern } => {
+                println!(
+                    "{}",
+                    models::search::Search::fetch(&pattern).await?.to_string()
                 );
             }
         },
