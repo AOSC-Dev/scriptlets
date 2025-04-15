@@ -6,10 +6,10 @@ use std::{collections::HashMap, fmt::Display};
 use pkgsite_tools::PACKAGES_SITE_URL;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RevDependency {
-    pub package: String,
-    pub version: String,
-    pub architecture: String,
+struct RevDependency {
+    package: String,
+    version: String,
+    architecture: String,
 }
 
 impl Display for RevDependency {
@@ -29,9 +29,9 @@ impl Display for RevDependency {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RevDependencyGroup {
-    pub description: String,
-    pub deps: Vec<RevDependency>,
+struct RevDependencyGroup {
+    description: String,
+    deps: Vec<RevDependency>,
 }
 
 impl Display for RevDependencyGroup {
@@ -52,10 +52,10 @@ impl Display for RevDependencyGroup {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RDepends {
-    pub revdeps: Vec<RevDependencyGroup>,
-    pub sobreaks: Vec<Vec<String>>,
-    pub sobreaks_circular: Vec<String>,
-    pub sorevdeps: HashMap<String, Vec<String>>,
+    revdeps: Vec<RevDependencyGroup>,
+    sobreaks: Vec<Vec<String>>,
+    sobreaks_circular: Vec<String>,
+    sorevdeps: HashMap<String, Vec<String>>,
 }
 
 impl RDepends {

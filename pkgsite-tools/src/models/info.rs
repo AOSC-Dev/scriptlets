@@ -6,11 +6,11 @@ use std::fmt::Display;
 use pkgsite_tools::PACKAGES_SITE_URL;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PackageError {
-    pub message: String,
-    pub path: String,
-    pub tree: String,
-    pub branch: String,
+struct PackageError {
+    message: String,
+    path: String,
+    tree: String,
+    branch: String,
 }
 
 impl Display for PackageError {
@@ -25,15 +25,15 @@ impl Display for PackageError {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Info {
-    pub name: String,
-    pub version: String,
-    pub category: String,
-    pub section: String,
-    pub errors: Vec<PackageError>,
-    pub srctype: String,
-    pub srcurl_base: String,
-    pub srcurl: String,
-    pub full_version: String,
+    name: String,
+    version: String,
+    category: String,
+    section: String,
+    errors: Vec<PackageError>,
+    srctype: String,
+    srcurl_base: String,
+    srcurl: String,
+    full_version: String,
 }
 
 impl Info {

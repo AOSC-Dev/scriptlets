@@ -6,10 +6,10 @@ use std::fmt::Display;
 use pkgsite_tools::PACKAGES_SITE_URL;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Dependency {
-    pub relationship: String,
-    pub arch: String,
-    pub packages: Vec<(String, String)>,
+struct Dependency {
+    relationship: String,
+    arch: String,
+    packages: Vec<(String, String)>,
 }
 
 impl Display for Dependency {
@@ -35,8 +35,8 @@ impl Display for Dependency {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Depends {
-    pub dependencies: Vec<Dependency>,
-    pub library_dependencies: Vec<String>,
+    dependencies: Vec<Dependency>,
+    library_dependencies: Vec<String>,
 }
 
 impl Depends {
