@@ -10,9 +10,7 @@ use pkgsite_tools::PACKAGES_SITE_URL;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct Package {
     name_highlight: String,
-    name: String,
     full_version: String,
-    description: String,
     desc_highlight: String,
 }
 
