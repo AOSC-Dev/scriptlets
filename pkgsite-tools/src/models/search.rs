@@ -69,9 +69,12 @@ impl Display for Search {
                 name_highlight: highlight_regex
                     .replace_all(&pkg.name_highlight, highlight_rep)
                     .to_string(),
-                desc_highlight: highlight_regex
-                    .replace_all(&pkg.desc_highlight, highlight_rep)
-                    .to_string(),
+                desc_highlight: html_escape::decode_html_entities(
+                    &highlight_regex
+                        .replace_all(&pkg.desc_highlight, highlight_rep)
+                        .to_string(),
+                )
+                .to_string(),
                 ..(*pkg).clone()
             })
             .collect::<Vec<Package>>();
