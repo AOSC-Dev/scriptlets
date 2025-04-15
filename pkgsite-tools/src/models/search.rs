@@ -58,7 +58,7 @@ impl Search {
 
 impl Display for Search {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let highlight_regex = Regex::new(r"<b>(?<highlight>.+)<\/b>").unwrap();
+        let highlight_regex = Regex::new(r"<b>(?<highlight>.+?)<\/b>").unwrap();
         let highlight_rep = |caps: &Captures| -> String {
             style(&caps["highlight"]).bold().underlined().to_string()
         };
