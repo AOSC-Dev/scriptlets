@@ -1,9 +1,10 @@
 use anyhow::Result;
+use console::{Alignment, measure_text_width, pad_str, style};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-use pkgsite_tools::PACKAGES_SITE_URL;
+use pkgsite_tools::{PACKAGES_SITE_URL, PADDING};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct PackageError {
@@ -24,6 +25,23 @@ impl Display for PackageError {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+struct DpkgMeta {
+    hasmeta: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct MatrixRow {
+    repo: String,
+    meta: Vec<DpkgMeta>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Version {
+    testing: bool,
+    version: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Info {
     name: String,
     version: String,
@@ -34,6 +52,8 @@ pub struct Info {
     srcurl_base: String,
     srcurl: String,
     full_version: String,
+    versions: Vec<Version>,
+    version_matrix: Vec<MatrixRow>,
 }
 
 impl Info {
@@ -56,13 +76,31 @@ impl Info {
 
 impl Display for Info {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let max_repo_width = &self
+            .version_matrix
+            .iter()
+            .map(|m| measure_text_width(&m.repo))
+            .max()
+            .unwrap_or(10);
+
+        let ver_width = [
+            &self.versions.first().map(|v| v.version.len()).unwrap_or(10),
+            &self.versions.get(1).map(|v| v.version.len()).unwrap_or(10),
+            &self.versions.get(2).map(|v| v.version.len()).unwrap_or(10),
+        ];
+
         write!(
             f,
             "Package: {}
 Version: {} ({})
 Section: {}-{}
 Upstream: {}
-Source: ({}) {}{}",
+Source: ({}) {}{}
+
+Available versions:
+{}{}
+{}
+{}",
             &self.name,
             &self.full_version,
             &self.version,
@@ -83,6 +121,64 @@ Source: ({}) {}{}",
                         .collect::<Vec<String>>()
                         .join("\n")
                 )
+            },
+            pad_str("Version", max_repo_width + PADDING, Alignment::Left, None),
+            &self
+                .versions
+                .iter()
+                .take(3)
+                .fold(String::new(), |acc, version| {
+                    let italic_version = style(&version.version).italic().to_string();
+                    acc + &pad_str(
+                        if version.testing {
+                            &italic_version
+                        } else {
+                            &version.version
+                        },
+                        version.version.len() + PADDING,
+                        Alignment::Left,
+                        None,
+                    )
+                }),
+            &self
+                .version_matrix
+                .iter()
+                .map(|repo| {
+                    format!(
+                        "{}{}",
+                        &pad_str(&repo.repo, max_repo_width + PADDING, Alignment::Left, None)
+                            .to_string(),
+                        &repo.meta.iter().take(3).enumerate().fold(
+                            String::new(),
+                            |acc, (idx, meta)| {
+                                if meta.hasmeta {
+                                    acc + &pad_str(
+                                        "✓",
+                                        *ver_width[idx] + PADDING,
+                                        Alignment::Left,
+                                        None,
+                                    )
+                                } else {
+                                    acc + &pad_str(
+                                        "x",
+                                        *ver_width[idx] + PADDING,
+                                        Alignment::Left,
+                                        None,
+                                    )
+                                }
+                            },
+                        )
+                    )
+                })
+                .collect::<Vec<String>>()
+                .join("\n"),
+            if self.versions.iter().any(|version| version.testing) {
+                format!(
+                    "\nNOTE: {} versions are italicized.",
+                    style("Testing").italic(),
+                )
+            } else {
+                String::new()
             }
         )
     }

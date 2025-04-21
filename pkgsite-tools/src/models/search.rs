@@ -5,7 +5,7 @@ use reqwest::{Client, StatusCode, redirect::Policy};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-use pkgsite_tools::PACKAGES_SITE_URL;
+use pkgsite_tools::{PACKAGES_SITE_URL, PADDING};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct Package {
@@ -101,13 +101,13 @@ impl Display for Search {
                     "{}{}{}",
                     pad_str(
                         &pkg.name_highlight,
-                        max_pkgname_width + 4,
+                        max_pkgname_width + PADDING,
                         Alignment::Left,
                         None
                     ),
                     pad_str(
                         &pkg.full_version,
-                        max_version_width + 4,
+                        max_version_width + PADDING,
                         Alignment::Left,
                         None
                     ),
