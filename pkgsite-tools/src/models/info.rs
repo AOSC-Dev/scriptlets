@@ -45,6 +45,7 @@ struct Version {
 pub struct Info {
     name: String,
     version: String,
+    description: String,
     category: String,
     section: String,
     errors: Vec<PackageError>,
@@ -93,6 +94,7 @@ impl Display for Info {
             f,
             "Package: {}
 Version: {} ({})
+Description: {}
 Section: {}-{}
 Upstream: {}
 Source: ({}) {}{}
@@ -104,6 +106,7 @@ Available versions:
             &self.name,
             &self.full_version,
             &self.version,
+            &self.description,
             &self.category,
             &self.section,
             &self.srcurl_base,
