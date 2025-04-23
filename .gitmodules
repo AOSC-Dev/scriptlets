@@ -1,0 +1,3 @@
+[submodule "pkgsite-tools"]
+	path = pkgsite-tools
+	url = https://github.com/AOSC-Dev/pkgsite-tools

@@ -1,5 +1,0 @@
-Packages Site Utilities
-=======================
-
-Compile	>> `cargo build --release`
-Usage   >> `./target/release/pkgsite help`
