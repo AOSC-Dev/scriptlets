@@ -9,17 +9,17 @@ homepage = "https://github.com/xtexChooser/pfu"
 repository = "https://github.com/xtexChooser/pfu.git"
 
 [dependencies]
-anyhow = "1.0.95"
-bytes = "1.9.0"
-clap = { version = "4.5.27", features = ["env", "derive"] }
-console = "0.15.10"
-git2 = { version = "0.20.0", default-features = false, features = ["vendored-libgit2"] }
-libabbs = "0.1.0"
+anyhow = "1.0.98"
+bytes = "1.10.1"
+clap = { version = "4.5.37", features = ["env", "derive"] }
+console = "0.15.11"
+git2 = { version = "0.20.1", default-features = false, features = ["vendored-libgit2"] }
+libabbs = "0.1.7"
 regex = { version = "1.11.1", default-features = false, features = ["std", "perf"] }
-reqwest = { version = "0.12.12", features = ["json"] }
-serde = { version = "1.0.217", features = ["derive"] }
-tokio = { version = "1.43.0", features = ["full"] }
-zstd = "0.13.2"
+reqwest = { version = "0.12.15", features = ["json"] }
+serde = { version = "1.0.219", features = ["derive"] }
+tokio = { version = "1.44.2", features = ["full"] }
+zstd = "0.13.3"
 
 [package.metadata.release]
 pre-release-commit-message = "{{crate_name}}: release {{version}}"
