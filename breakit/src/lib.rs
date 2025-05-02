@@ -40,7 +40,7 @@ impl PkgBreakContext {
 		let spec = fs::read_to_string(package.join("spec"))?;
 		let spec_ctx = ApmlContext::eval_source(&spec)?;
 		let pkgrebuild = spec_ctx
-			.get(&format!("PKGREBUILD__{}", kind))
+			.get(&format!("PKGREBUILD__{kind}"))
 			.or_else(|| spec_ctx.get("PKGREBUILD"))
 			.map(|val| StringArray::from(val.as_string()))
 			.map(|val| {

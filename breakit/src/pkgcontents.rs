@@ -19,8 +19,7 @@ pub(crate) async fn find_deps(
 			.execute(
 				client
 					.get(format!(
-						"https://repo.aosc.io/debs/dists/stable/main/Contents-{}.zst",
-						arch
+						"https://repo.aosc.io/debs/dists/stable/main/Contents-{arch}.zst"
 					))
 					.build()?,
 			)

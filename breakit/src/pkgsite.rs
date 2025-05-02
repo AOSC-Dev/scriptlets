@@ -14,8 +14,7 @@ pub(crate) async fn find_deps(
 		.execute(
 			client
 				.get(format!(
-					"https://packages.aosc.io/revdep/{}?type=json",
-					package
+					"https://packages.aosc.io/revdep/{package}?type=json"
 				))
 				.build()?,
 		)

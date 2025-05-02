@@ -112,7 +112,7 @@ async fn main() -> Result<()> {
 			let broke_pkg = match abbs.find_subpackage(&broke_pkg_name) {
 				Ok(pkg) => pkg,
 				Err(AbbsError::PackageNotFound(pkg)) => {
-					eprintln!("{} has ben dropped from repository", pkg);
+					eprintln!("{pkg} has ben dropped from repository");
 					continue;
 				}
 				Err(err) => return Err(err.into()),
@@ -152,7 +152,7 @@ async fn main() -> Result<()> {
 
 		let pkgbreak_val = StringArray::new(broke_reqs).print();
 		// print
-		println!("{}", pkgbreak_val);
+		println!("{pkgbreak_val}");
 
 		// write PKGBREAK back
 		if args.write {
@@ -160,7 +160,7 @@ async fn main() -> Result<()> {
 			for subpkg in package.subpackages()? {
 				for recipe in subpkg.modifier_suffixes()? {
 					let defines_path =
-						subpkg.join(format!("defines{}", recipe));
+						subpkg.join(format!("defines{recipe}"));
 					let defines_text = fs::read_to_string(&defines_path)?;
 					let mut defines_lst = ApmlLst::parse(&defines_text)?;
 					let mut defines_editor = ApmlEditor::wrap(&mut defines_lst);
@@ -169,7 +169,7 @@ async fn main() -> Result<()> {
 
 					let defines_text = defines_lst.to_string();
 					fs::write(&defines_path, defines_text)?;
-					eprintln!("Written to {:?}", defines_path);
+					eprintln!("Written to {defines_path:?}");
 				}
 			}
 		}
@@ -191,7 +191,7 @@ async fn main() -> Result<()> {
 
 		// write
 		for (sec, pkg) in &visited {
-			writeln!(file, "{}/{}", sec, pkg)?;
+			writeln!(file, "{sec}/{pkg}")?;
 		}
 	}
 
