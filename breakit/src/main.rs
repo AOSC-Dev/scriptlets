@@ -225,6 +225,8 @@ async fn main() -> Result<()> {
 					Ok(ast::VariableValue::String("1".into()))
 				})?;
 			spec_editor.replace_var_ast("REL", &new_rel);
+
+			fs::write(spec_path, spec_lst.to_string())?;
 		}
 	}
 
