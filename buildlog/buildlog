@@ -1,0 +1,69 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-3.0
+set -Eeuo pipefail
+trap 'errorHandler "$?" "${FUNCNAME[0]}" "$LINENO"' ERR
+
+error() {
+    echo -e "\e[0;31m[ERROR] $*\e[0m" >&2
+}
+
+die() {
+    error "$*"
+    exit 1
+}
+
+log() {
+    echo -e "\e[0;32m$*\e[0m" >&2
+}
+
+errorHandler() {
+    echo -e "\e[0;31m[BUG] Line $3 ($2): $1\e[0m" >&2
+    exit "$1"
+}
+
+if [[ $# != 1 ]]; then
+    cat <<EOF
+Usage: $0 [build bot|arch|job ID]
+EOF
+    exit
+fi
+
+buildbot="$1"
+buildbotLc="${buildbot,,}"
+
+[[ "$buildbotLc" != "x86-64" ]] || buildbot="amd64"
+[[ "$buildbotLc" != "x86_64" ]] || buildbot="amd64"
+[[ "$buildbotLc" != "rv64" ]] || buildbot="riscv64"
+[[ "$buildbotLc" != "rv" ]] || buildbot="riscv64"
+[[ "$buildbotLc" != "la64" ]] || buildbot="loongarch64"
+[[ "$buildbotLc" != "la" ]] || buildbot="loongarch64"
+[[ "$buildbotLc" != "ls" ]] || buildbot="loongson3"
+[[ "$buildbotLc" != "ls3" ]] || buildbot="loongson3"
+[[ "$buildbotLc" != "ppc" ]] || buildbot="ppc64el"
+
+if [[ "${buildbot,,}" =~ ^(amd64|arm64|riscv64|loongarch64|loongson3|ppc64el)$ ]]; then
+    log "Resolving job ID ..."
+    jobUrl="$(gh pr checks --json 'name,link' | jq -r ".[] | select(.name == \"buildit ${buildbot,,}\") | .link")"
+    if [[ "$jobUrl" =~ ^https:\/\/buildit\.aosc\.io\/jobs\/[[:digit:]]+$ ]]; then
+        buildbot="$(cut -d'/' -f5 <<<"$jobUrl")"
+        log "Resolved job ID: $buildbot"
+    else
+        die "Cannot find BuildIt! job for target $buildbot"
+    fi
+fi
+
+if [[ "$buildbot" =~ ^[[:digit:]]+$ ]]; then
+    log "Resolving buildbot ..."
+    buildbot="$(curl -sS \
+        -H 'Accept: application/json' \
+        -H 'User-Agent: AOSC-Dev/scriptlets/buildlog' \
+        "https://buildit.aosc.io/api/job/info?job_id=$buildbot" | jq -r '.assigned_worker_hostname // ""')"
+    log "Resolved buildbot: $buildbot"
+fi
+
+if [[ -z "$buildbot" ]]; then
+    die "Job has completed."
+fi
+
+log "Connecting to $buildbot ..."
+websocat wss://buildit.aosc.io/api/ws/viewer/"$buildbot"
