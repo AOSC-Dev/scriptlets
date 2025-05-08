@@ -5,10 +5,10 @@ use std::{
 };
 
 use anyhow::{anyhow, Context, Result};
+use liblzma::read::XzDecoder;
 use reqwest::blocking::ClientBuilder;
 use tar::Archive;
 use walkdir::WalkDir;
-use xz2::read::XzDecoder;
 
 fn main() -> Result<()> {
     let tree = args().nth(1).context(format!(
@@ -16,7 +16,8 @@ fn main() -> Result<()> {
         current_exe().unwrap().display()
     ))?;
 
-    let mut users = sysusers(&tree)?;
+    let mut users = vec![];
+    sysusers(&mut users, &tree)?;
     usergroup(&mut users, &tree)?;
     bootstrap(&mut users)?;
 
@@ -27,8 +28,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn sysusers(tree: &str) -> Result<Vec<String>> {
-    let mut users = vec![];
+fn sysusers(users: &mut Vec<String>, tree: &str) -> Result<()> {
     for i in WalkDir::new(tree).min_depth(8).max_depth(8) {
         let i = i?;
         if i.path().to_string_lossy().contains("sysusers.d")
@@ -49,7 +49,7 @@ fn sysusers(tree: &str) -> Result<Vec<String>> {
         }
     }
 
-    Ok(users)
+    Ok(())
 }
 
 fn usergroup(users: &mut Vec<String>, tree: &str) -> Result<()> {
@@ -89,9 +89,7 @@ fn bootstrap(users: &mut Vec<String>) -> Result<()> {
             let mut s = String::new();
             f.read_to_string(&mut s)?;
             for i in s.trim().lines() {
-                let (user, _) = i
-                    .split_once(':')
-                    .ok_or(anyhow!("Failed to parse etc/passwd"))?;
+                let (user, _) = i.split_once(':').context("Failed to parse etc/passwd")?;
                 if !users.contains(&user.to_string()) {
                     users.push(user.to_string());
                 }
