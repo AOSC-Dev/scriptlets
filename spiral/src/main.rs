@@ -6,8 +6,9 @@ use std::{
 };
 
 use anyhow::{Context, Result};
+use bincode::config::{self};
 use clap::{ArgAction, Parser, Subcommand};
-use dirs_next::cache_dir;
+use dirs::cache_dir;
 use fancy_regex::Regex;
 use flate2::read::GzDecoder;
 use log::info;
@@ -60,7 +61,8 @@ fn main() -> Result<()> {
                 update_data(&dir)?
             } else {
                 let f = File::open(spiral_data_path)?;
-                bincode::deserialize_from(f)?
+                let reader = BufReader::new(f);
+                bincode::decode_from_reader(reader, config::standard())?
             };
 
             let mut set = HashSet::new();
@@ -77,10 +79,13 @@ fn main() -> Result<()> {
                 }
             }
 
-            for i in set {
+            for i in &set {
                 print!("{} ", i);
             }
-            println!();
+
+            if !set.is_empty() {
+                println!();
+            }
         }
         Subcmd::UpdateCache => {
             update_data(&dir)?;
@@ -157,8 +162,8 @@ fn update_data(dir: &Path) -> Result<Vec<(String, String)>> {
         .collect::<Vec<_>>();
 
     let mut f = File::create(dir.join("spiral_data"))?;
-    let ser = bincode::serialize(&res)?;
-    f.write_all(&ser)?;
+    let dst = bincode::encode_to_vec(&res, config::standard())?;
+    f.write_all(&dst)?;
 
     info!("Updated spiral cache");
 
