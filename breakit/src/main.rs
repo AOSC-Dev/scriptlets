@@ -39,6 +39,9 @@ struct Args {
 	#[arg(long)]
 	write_group: Option<PathBuf>,
 	/// Bump REL for broken packages.
+	///
+	/// Packages that are already updated in the topic will not be bumped
+	/// (in comparsion with local stable branch).
 	#[arg(long)]
 	bump_rel: bool,
 }
@@ -55,6 +58,12 @@ async fn main() -> Result<()> {
 	let repo = git2::Repository::open(&tree)?;
 	let head_commit = repo.head()?.peel_to_commit()?;
 	let head_tree = head_commit.tree()?;
+
+	let stable_commit = repo
+		.find_branch("stable", git2::BranchType::Local)?
+		.get()
+		.peel_to_commit()?;
+	let stable_tree = stable_commit.tree()?;
 
 	let total_packages = args.packages.len();
 	let mut visited = Vec::new();
@@ -159,8 +168,7 @@ async fn main() -> Result<()> {
 			let pkgbreak_lst = lst::VariableValue::String(pkgbreak_val.into());
 			for subpkg in package.subpackages()? {
 				for recipe in subpkg.modifier_suffixes()? {
-					let defines_path =
-						subpkg.join(format!("defines{recipe}"));
+					let defines_path = subpkg.join(format!("defines{recipe}"));
 					let defines_text = fs::read_to_string(&defines_path)?;
 					let mut defines_lst = ApmlLst::parse(&defines_text)?;
 					let mut defines_editor = ApmlEditor::wrap(&mut defines_lst);
@@ -213,6 +221,42 @@ async fn main() -> Result<()> {
 			let spec_src = fs::read_to_string(&spec_path)?;
 			let mut spec_lst = ApmlLst::parse(&spec_src)?;
 			let spec_ctx = ApmlContext::eval_lst(&spec_lst)?;
+
+			let stable_spec = stable_tree.get_path(Path::new(&format!(
+				"{}/{}/spec",
+				package.section(),
+				package.name()
+			)));
+			match stable_spec {
+				Ok(stable_spec) => {
+					let stable_spec =
+						stable_spec.to_object(&repo)?.peel_to_blob()?;
+					let stable_spec = str::from_utf8(stable_spec.content())?;
+					let stable_spec = ApmlContext::eval_source(stable_spec)?;
+
+					let [stable_ver, current_ver] = [&stable_spec, &spec_ctx]
+						.map(|spec| {
+							format!(
+								"{}:{}",
+								spec.read("VER").into_string(),
+								spec.read("REL").into_string()
+							)
+						});
+					if current_ver != stable_ver {
+						eprintln!(
+							"    Skipped: changed since stable, {stable_ver} -> {current_ver}"
+						);
+					}
+				}
+				Err(err) => {
+					if !(err.class() == git2::ErrorClass::Tree
+						&& err.code() == git2::ErrorCode::NotFound)
+					{
+						return Err(err.into());
+					}
+				}
+			}
+
 			let mut spec_editor = ApmlEditor::wrap(&mut spec_lst);
 			let new_rel = spec_ctx
 				.get("REL")
