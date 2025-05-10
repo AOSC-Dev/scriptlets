@@ -246,6 +246,7 @@ async fn main() -> Result<()> {
 						eprintln!(
 							"    Skipped: changed since stable, {stable_ver} -> {current_ver}"
 						);
+						continue;
 					}
 				}
 				Err(err) => {
