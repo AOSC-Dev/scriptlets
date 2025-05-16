@@ -13,7 +13,7 @@ pub(crate) async fn find_deps(
 ) -> Result<HashSet<String>> {
 	let mut packages = HashSet::new();
 	let repo_base = env::var("BREAKIT_REPO")
-		.unwrap_or_else(|| "https://repo.aosc.io".into());
+		.unwrap_or_else(|_| "https://repo.aosc.io".into());
 
 	for arch in ["all", "amd64", "arm64"] {
 		// TODO: cache Contents file
