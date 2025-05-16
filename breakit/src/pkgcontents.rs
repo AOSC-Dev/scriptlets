@@ -1,7 +1,7 @@
 //! Helpers to scan the `Contents` file of a APT repository.
 
 use core::str;
-use std::collections::HashSet;
+use std::{collections::HashSet, env};
 
 use anyhow::Result;
 use bytes::Buf;
@@ -12,6 +12,8 @@ pub(crate) async fn find_deps(
 	pattern: &Regex,
 ) -> Result<HashSet<String>> {
 	let mut packages = HashSet::new();
+	let repo_base = env::var("BREAKIT_REPO")
+		.unwrap_or_else(|| "https://repo.aosc.io".into());
 
 	for arch in ["all", "amd64", "arm64"] {
 		// TODO: cache Contents file
@@ -19,7 +21,7 @@ pub(crate) async fn find_deps(
 			.execute(
 				client
 					.get(format!(
-						"https://repo.aosc.io/debs/dists/stable/main/Contents-{arch}.zst"
+						"{repo_base}/debs/dists/stable/main/Contents-{arch}.zst"
 					))
 					.build()?,
 			)
