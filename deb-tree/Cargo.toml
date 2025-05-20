@@ -1,0 +1,10 @@
+[package]
+name = "deb-tree"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+oma-apt = "0.8"
+termtree = "0.5.1"
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
