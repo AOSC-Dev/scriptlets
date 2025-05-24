@@ -189,8 +189,6 @@ dropPkg() {
 
     log "[$pkg] Committing ..."
     git commit -m "$pkg: $commitMessage" \
-        --trailer X-AOSC-dropit-package="$pkg" \
-        --trailer X-AOSC-dropit-directory="$pkgDir" \
         -- "${commitPaths[@]}"
 
     local commitLog
