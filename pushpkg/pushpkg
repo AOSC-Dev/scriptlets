@@ -176,6 +176,7 @@ def rsync_non_noarch_file(upload_url: str, branch: str, identity_file=None, verb
 
     command = [
         "rsync",
+        "--delay-updates",
         "--recursive",
         "--mkpath",
         "--links",
@@ -223,6 +224,7 @@ def rsync_noarch_file(upload_url: str, branch: str, identity_file=None, verbose=
 
     command = [
         "rsync",
+	"--delay-updates",
         "--recursive",
         "--mkpath",
         "--links",
