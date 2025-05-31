@@ -127,35 +127,67 @@ async fn main() -> Result<()> {
 				Err(err) => return Err(err.into()),
 			};
 			let srcpkg = broke_pkg.source_package();
-			let broke_spec = ApmlContext::eval_source(&fs::read_to_string(
-				srcpkg.join("spec"),
-			)?)?;
-			let broke_defines = ApmlContext::eval_source(&fs::read_to_string(
-				broke_pkg.join("defines"),
-			)?)?;
 
-			// build version string
-			let mut ver = String::with_capacity(10);
+			let stable_spec = stable_tree.get_path(Path::new(&format!(
+				"{}/{}/spec",
+				srcpkg.section(),
+				srcpkg.name()
+			)));
+			let stable_defines = stable_tree.get_path(Path::new(&format!(
+				"{}/{}/{}/defines",
+				srcpkg.section(),
+				srcpkg.name(),
+				broke_pkg.dir_name(),
+			)));
+			match (stable_spec, stable_defines) {
+				(Ok(stable_spec), Ok(stable_defines)) => {
+					let stable_spec =
+						stable_spec.to_object(&repo)?.peel_to_blob()?;
+					let stable_spec = str::from_utf8(stable_spec.content())?;
+					let stable_spec = ApmlContext::eval_source(stable_spec)?;
 
-			let epoch =
-				broke_defines.get("PKGEPOCH").map(|val| val.as_string());
-			if let Some(epoch) = epoch {
-				if epoch != "0" {
-					ver.push_str(&epoch);
-					ver.push(':');
+					let stable_defines =
+						stable_defines.to_object(&repo)?.peel_to_blob()?;
+					let stable_defines =
+						str::from_utf8(stable_defines.content())?;
+					let stable_defines =
+						ApmlContext::eval_source(stable_defines)?;
+
+					// build version string
+					let mut ver = String::with_capacity(10);
+
+					let epoch = stable_defines
+						.get("PKGEPOCH")
+						.map(|val| val.as_string());
+					if let Some(epoch) = epoch {
+						if epoch != "0" {
+							ver.push_str(&epoch);
+							ver.push(':');
+						}
+					}
+
+					ver.push_str(&stable_spec.read("VER").into_string());
+					let rel = stable_spec.get("REL").map(|val| val.as_string());
+					if let Some(rel) = rel {
+						if rel != "0" {
+							ver.push('-');
+							ver.push_str(&rel);
+						}
+					}
+
+					broke_reqs.push(format!("{}<={}", &broke_pkg_name, ver));
+					visited.push((srcpkg.section(), srcpkg.name().to_string()));
+				}
+				(Err(err), _) | (_, Err(err)) => {
+					if !(err.class() == git2::ErrorClass::Tree
+						&& err.code() == git2::ErrorCode::NotFound)
+					{
+						return Err(err.into());
+					} else {
+						eprintln!("    Skipped: no in stable");
+					}
 				}
 			}
-
-			ver.push_str(&broke_spec.read("VER").into_string());
-			let rel = broke_spec.get("REL").map(|val| val.as_string());
-			if let Some(rel) = rel {
-				if rel != "0" {
-					ver.push('-');
-					ver.push_str(&rel);
-				}
-			}
-			broke_reqs.push(format!("{}<={}", &broke_pkg_name, ver));
-			visited.push((srcpkg.section(), srcpkg.name().to_string()));
 		}
 		broke_reqs.sort();
 
@@ -226,36 +258,24 @@ async fn main() -> Result<()> {
 				"{}/{}/spec",
 				package.section(),
 				package.name()
-			)));
-			match stable_spec {
-				Ok(stable_spec) => {
-					let stable_spec =
-						stable_spec.to_object(&repo)?.peel_to_blob()?;
-					let stable_spec = str::from_utf8(stable_spec.content())?;
-					let stable_spec = ApmlContext::eval_source(stable_spec)?;
+			)))?;
+			let stable_spec = stable_spec.to_object(&repo)?.peel_to_blob()?;
+			let stable_spec = str::from_utf8(stable_spec.content())?;
+			let stable_spec = ApmlContext::eval_source(stable_spec)?;
 
-					let [stable_ver, current_ver] = [&stable_spec, &spec_ctx]
-						.map(|spec| {
-							format!(
-								"{}:{}",
-								spec.read("VER").into_string(),
-								spec.read("REL").into_string()
-							)
-						});
-					if current_ver != stable_ver {
-						eprintln!(
-							"    Skipped: changed since stable, {stable_ver} -> {current_ver}"
-						);
-						continue;
-					}
-				}
-				Err(err) => {
-					if !(err.class() == git2::ErrorClass::Tree
-						&& err.code() == git2::ErrorCode::NotFound)
-					{
-						return Err(err.into());
-					}
-				}
+			let [stable_ver, current_ver] =
+				[&stable_spec, &spec_ctx].map(|spec| {
+					format!(
+						"{}:{}",
+						spec.read("VER").into_string(),
+						spec.read("REL").into_string()
+					)
+				});
+			if current_ver != stable_ver {
+				eprintln!(
+					"    Skipped: changed since stable, {stable_ver} -> {current_ver}"
+				);
+				continue;
 			}
 
 			let mut spec_editor = ApmlEditor::wrap(&mut spec_lst);
