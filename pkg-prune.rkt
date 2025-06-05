@@ -66,16 +66,19 @@
                          pkgname)))
   (define port (get-impure-port url))
   (define header (purify-port port))
-  (define json-res
-    (if (= (extract-http-code header) 200)
-        (read-json port)
-        (error 'revdeps
-               "failed to get reverse dependencies for ~a: status code ~a"
-               pkgname
-               (extract-http-code header))))
-  (flatten (for/list ([group (hash-ref json-res 'revdeps)])
-             (for/list ([p (hash-ref group 'deps)])
-               (hash-ref p 'package)))))
+  (if (= (extract-http-code header) 200)
+      (let ([json-res (read-json port)])
+        (flatten (for/list ([group (hash-ref json-res 'revdeps)])
+                   (for/list ([p (hash-ref group 'deps)])
+                     (hash-ref p 'package)))))
+      (begin
+        (displayln
+         (format
+          "[WARN] failed to get reverse dependencies for ~a: status code ~a"
+          pkgname
+          (extract-http-code header))
+         (current-error-port))
+        (list))))
 
 (define/contract (packages-site-deps pkgname)
   (-> string? (listof string?))
@@ -84,25 +87,27 @@
                          pkgname)))
   (define port (get-impure-port url))
   (define header (purify-port port))
-  (define json-res
-    (if (= (extract-http-code header) 200)
-        (read-json port)
-        (error 'revdeps
-               "failed to get dependencies for ~a: status code ~a"
-               pkgname
-               (extract-http-code header))))
-  (flatten (for/list ([group (hash-ref json-res 'dependencies)])
-             (if (or (equal? (hash-ref group 'relationship) "Breaks")
-                     (equal? (hash-ref group 'relationship) "Provides")
-                     (equal? (hash-ref group 'relationship) "Replaces"))
-                 (list)
-                 (foldl (λ (p acc)
-                          (define pname (list-ref p 0))
-                          (if (member pname acc)
-                              acc
-                              (cons pname acc)))
-                        (list)
-                        (hash-ref group 'packages))))))
+  (if (= (extract-http-code header) 200)
+      (let ([json-res (read-json port)])
+        (flatten (for/list ([group (hash-ref json-res 'dependencies)])
+                   (if (or (equal? (hash-ref group 'relationship) "Breaks")
+                           (equal? (hash-ref group 'relationship) "Provides")
+                           (equal? (hash-ref group 'relationship) "Replaces"))
+                       (list)
+                       (foldl (λ (p acc)
+                                (define pname (list-ref p 0))
+                                (if (member pname acc)
+                                    acc
+                                    (cons pname acc)))
+                              (list)
+                              (hash-ref group 'packages))))))
+      (begin
+        (displayln
+         (format "[WARN] failed to get dependencies for ~a: status code ~a"
+                 pkgname
+                 (extract-http-code header))
+         (current-error-port))
+        (list))))
 
 (define/contract (oma-revdeps pkgname)
   (-> string? (listof string?))
@@ -168,6 +173,13 @@
     (hash-set! revdeps-memo p ((revdeps) p)))
   (hash-ref revdeps-memo p))
 
+(define deps-memo (make-hash))
+(define/contract (memoized-deps p)
+  (-> string? (listof string?))
+  (when (not (hash-has-key? deps-memo p))
+    (hash-set! deps-memo p ((deps) p)))
+  (hash-ref deps-memo p))
+
 ;; Recursively get reverse dependency tree leaves
 (define/contract (revdeps* pkgnames)
   (-> (listof string?) (listof string?))
@@ -175,7 +187,8 @@
           (queue-foldl
            (λ (acc queue)
              (define p (car queue))
-             (define rdeps (filter (λ (rd) (not (member rd acc))) (memoized-revdeps p)))
+             (define rdeps
+               (filter (λ (rd) (not (member rd acc))) (memoized-revdeps p)))
              (if (null? rdeps)
                  (values acc (cdr queue))
                  (values (append rdeps acc) (append (cdr queue) rdeps))))
@@ -188,11 +201,13 @@
   (queue-foldl (λ (acc queue)
                  (define p (car queue))
                  (define rdeps (memoized-revdeps p))
-                 (if (or (null? rdeps)
-                         (and (not (member p acc))
-                              (andmap (λ (rd) (member rd acc)) rdeps)))
+                 (define deps (memoized-deps p))
+                 (if (and (not (and (empty? rdeps) (empty? deps))) ;; filter already removed packages
+                          (or (null? rdeps)
+                              (and (not (member p acc))
+                                   (andmap (λ (rd) (member rd acc)) rdeps))))
                      ; when all revdeps are in the to-be-pruned list
-                     (values (cons p acc) (append ((deps) p) (cdr queue)))
+                     (values (cons p acc) (append deps (cdr queue)))
                      (values acc (cdr queue))))
                (list)
                pkgnames))
@@ -203,29 +218,27 @@
 (define result-only (make-parameter #f))
 
 (define packages-to-prune
-  (command-line #:program "pkg-prune.rkt"
-                #:usage-help
-                "note: pruning does not work with unspecified cyclic dependencies"
-                #:once-each
-                [("-o" "--use-oma")
-                 "Use `oma` implementation instead of querying packages.aosc.io"
-                 (revdeps oma-revdeps)
-                 (deps oma-deps)]
-                [("-t" "--result-only")
-                 "Do NOT include given packages in the result"
-                 (result-only #t)]
-                #:once-any
-                [("-r" "--rdeps-only")
-                 "Only get recursive reverse dependencies"
-                 (rdeps-only #t)]
-                [("-p" "--prune-only")
-                 "Only get to-be-orphaned dependencies"
-                 (prune-only #t)]
-                #:args pkgnames
-                (when (null? pkgnames)
-                  (raise-user-error 'pkg-prune
-                                    "expects at least one package name"))
-                pkgnames))
+  (command-line
+   #:program "pkg-prune.rkt"
+   #:usage-help
+   "note: pruning does not work with unspecified cyclic dependencies"
+   #:once-each [("-o" "--use-oma")
+                "Use `oma` implementation instead of querying packages.aosc.io"
+                (revdeps oma-revdeps)
+                (deps oma-deps)]
+   [("-t" "--result-only")
+    "Do NOT include given packages in the result"
+    (result-only #t)]
+   #:once-any [("-r" "--rdeps-only")
+               "Only get recursive reverse dependencies"
+               (rdeps-only #t)]
+   [("-p" "--prune-only")
+    "Only get to-be-orphaned dependencies"
+    (prune-only #t)]
+   #:args pkgnames
+   (when (null? pkgnames)
+     (raise-user-error 'pkg-prune "expects at least one package name"))
+   pkgnames))
 
 (define result
   (if (rdeps-only)
