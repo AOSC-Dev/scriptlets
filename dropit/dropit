@@ -239,7 +239,11 @@ while [ $# -ne 0 ]; do
         collectRemainingUsages=true
         ;;
     -m)
-        commitMessage+=", $2"
+        if [[ "$2" =~ drop* ]]; then
+            commitMessage="$2"
+        else
+            commitMessage+=", $2"
+        fi
         shift
         ;;
     *)
