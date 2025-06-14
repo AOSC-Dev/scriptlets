@@ -1,3 +1,0 @@
-requests
-semver
-html5lib

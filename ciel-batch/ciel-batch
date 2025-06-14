@@ -1,7 +1,0 @@
-#!/bin/bash -e
-set -e
-for i in "$@"; do
-    ciel rollback
-    sleep 3
-    ciel build "$i" || read -p check
-done
