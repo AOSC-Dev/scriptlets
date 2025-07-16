@@ -14,7 +14,9 @@ lastTag() {
 }
 
 todayTags() {
-  git tag --list 'aosc/*' --sort -taggerdate --format '%(refname:strip=2) %(taggerdate:format:%F)' | grep -F " $(date +\'%F\')" | cut -d' ' -f1
+  git tag --list 'aosc/*' --sort -taggerdate --format '%(refname:strip=2) %(taggerdate:format:%F)' |
+    grep -F " $(date +'%F')" |
+    cut -d' ' -f1
 }
 
 currentBranch() {
