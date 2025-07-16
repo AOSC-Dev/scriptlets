@@ -103,7 +103,7 @@ listBranches() {
 pushAll() {
   local refspecs=()
   readarray -d ' ' -t refspecs < <(listBranches | xargs echo -n)
-  git push aosc "${refspecs[@]}"
+  git push --follow-tags aosc "${refspecs[@]}"
 }
 
 findGAForMajor() {
