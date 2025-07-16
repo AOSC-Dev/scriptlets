@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+# Author: xtex <xtex@aosc.io>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+die() {
+  echo "$1" >&2
+  exit 1
+}
+
+lastTag() {
+  git tag --list 'aosc/*' --sort -taggerdate --format '%(refname:strip=2)' | head -n1
+}
+
+todayTags() {
+  git tag --list 'aosc/*' --sort -taggerdate --format '%(refname:strip=2) %(taggerdate:format:%F)' | grep -F " $(date +\'%F\')" | cut -d' ' -f1
+}
+
+currentBranch() {
+  git symbolic-ref HEAD --short
+}
+
+findNextRel() {
+  local rel=0
+  while true; do
+    if git rev-parse --verify -q refs/tags/"$1"/"$rel" &>/dev/null; then
+      ((rel++))
+    else
+      echo -n "$rel"
+      return
+    fi
+  done
+}
+
+tag() {
+  local branch="$1"
+  if ! [[ "$branch" =~ aosc/*/* ]]; then
+    die "$branch does not seem to be a AOSC branch"
+  fi
+
+  local -a branchParts
+  readarray -d '/' -t branchParts < <(tr -d '\n' <<<"$branch")
+  local major="${branchParts[1]}" upstream="${branchParts[2]}" variant="${branchParts[3]:-}"
+
+  if [[ -z "$variant" ]]; then
+    echo "$branch: $major $upstream ..."
+  else
+    echo "$branch: $major $upstream $variant ..."
+  fi
+
+  local nextRel
+  nextRel="$(findNextRel "$branch")"
+  echo "Next REL: $nextRel"
+
+  local tag="$branch"/"$nextRel"
+  git tag -sf "$tag" "$branch" -m "openjdk-$major $upstream-$nextRel"
+  echo "Tagged: $(git tag -n1 --list "$tag")"
+  attestation "$tag"
+}
+
+tagSmart() {
+  if [[ "$#" == 0 ]]; then
+    tag "$(currentBranch)"
+  else
+    for i in "$@"; do
+      tag "$i"
+    done
+  fi
+}
+
+attestation() {
+  local tag="${1:-}"
+  if [ -z "$tag" ]; then
+    tag="$(lastTag)"
+  fi
+  git tag --list "$tag" --format '- Track patches at AOSC-Tracking/jdk @ %(refname:lstrip=2)
+  Tag: %(objectname)
+  HEAD: %(*objectname)
+  Signed by %(*signature:signer)'
+}
+
+attestationSmart() {
+  if [[ "$#" == 0 ]]; then
+    attestation "$(lastTag)"
+  else
+    for i in "$@"; do
+      attestation "$i"
+    done
+  fi
+}
+
+attestationToday() {
+  while read -r i; do
+    attestation "$i"
+  done < <(todayTags)
+}
+
+listBranches() {
+  git branch --list 'aosc/*' --format '%(refname:lstrip=2)'
+}
+
+pushAll() {
+  local refspecs=()
+  readarray -d ' ' -t refspecs < <(listBranches | xargs echo -n)
+  git push aosc "${refspecs[@]}"
+}
+
+findGAForMajor() {
+  git tag --list "jdk-${1}*-ga" --sort '-taggerdate' | head -n1 | cut -d'-' -f2
+}
+
+currentMajor() {
+  currentBranch | cut -d'/' -f2
+}
+
+autoBranch() {
+  local major ga
+  major="$(currentMajor)"
+  ga=$(findGAForMajor "$major")
+  git switch -c "aosc/$major/$ga-ga"
+}
+
+autoRebase() {
+  local major="$1" version ga
+  version="$(oma show openjdk-"$major" --json |
+    jq '.version | split(":") | (.[1] // .[0]) | split("-")[0] | sub("\\+"; "-")' -r)"
+  ga=$(findGAForMajor "$major")
+
+  git switch "aosc/$major/$version"
+  autoBranch
+  git rebase "jdk-$ga-ga"
+  tag "$(currentBranch)"
+}
+
+autoRebaseSmart() {
+  if [[ "$#" == 0 ]]; then
+    autoRebase "$(currentMajor)"
+  else
+    for i in "$@"; do
+      autoRebase "$i"
+    done
+  fi
+}
+
+cmd="${1:-}"
+shift
+case "$cmd" in
+tag)
+  tagSmart "$@"
+  ;;
+attest | att)
+  attestationSmart "$@"
+  ;;
+attest-today)
+  attestationToday "$@"
+  ;;
+push)
+  pushAll "$@"
+  ;;
+auto-branch | abr)
+  autoBranch "$@"
+  ;;
+auto)
+  autoRebaseSmart "$@"
+  ;;
+*)
+  die "Unknown subcommand $cmd"
+  ;;
+esac

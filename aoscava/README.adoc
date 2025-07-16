@@ -1,0 +1,32 @@
+= aoscava
+
+AOSC OS OpenJDK tracking maintenance utilities.
+
+== Installing
+
+....
+make install # Install
+make dev # Install for development
+....
+
+== Usage
+
+* `aoscava tag [branch]...`: Tag branches for a new REL
+* `aoscava attest [tag]...`: Generate attestation for a tag (Alias: `att`)
+* `aoscava attest-today`: Generate attestation for a tag
+* `aoscava push`: Push AOSC branches to remote
+* `aoscava auto-branch`: Automatically create a new branch for latest GA version (Alias: `abr`)
+* `aoscava auto`: Resign.
+== License
+
+[quote]
+----
+aoscava
+Copyright (C) 2025  AOSC OS maintainers
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+----
