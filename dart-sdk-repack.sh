@@ -64,7 +64,6 @@ echo "Generating final tarball.."
 tar -cvf dart-sdk-${DART_VERSION}.tar \
     --exclude-backups \
     --exclude-caches-all \
-    --exclude-vcs \
     dart-sdk-${DART_VERSION}
 zstd --auto-threads=logical --ultra --long -22 -T0 -vv \
     dart-sdk-${DART_VERSION}.tar \
