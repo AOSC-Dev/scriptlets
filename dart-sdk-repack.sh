@@ -62,6 +62,10 @@ ln -svf /usr/bin/ninja dart-sdk-${DART_VERSION}/buildtools/ninja/ninja
 
 echo "Generating final tarball.."
 tar -cvf dart-sdk-${DART_VERSION}.tar \
+    --exclude="ChangeLog*" \
+    --exclude="sdk/buildtools/*/clang" \
+    --exclude="third_party/fuchsia/sdk/linux/arch" \
+    --exclude=".build-id" \
     --exclude-backups \
     --exclude-caches-all \
     --exclude-vcs \
