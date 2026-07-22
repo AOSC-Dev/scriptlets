@@ -117,15 +117,12 @@ ninja = true
 debug = false
 debuginfo-level = 0
 deny-warnings = false
-parallel-compiler = false
 
 [build]
 target = ["${RHOST}"]
 host = ["${RHOST}"]
 vendor = true
-EOF
-
-cat >> config.toml <<EOF
+docs = false
 extended = true
 tools = ["cargo", "clippy", "rustfmt", "rustdoc", "rust-analyzer-proc-macro-srv"]
 
