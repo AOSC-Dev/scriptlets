@@ -7,8 +7,6 @@ KDE_QT_BANNED_MODULES=('qtcanvas3d' 'qtfeedback' 'qtpim' 'qtqa' 'qtrepotools' 'q
 CATAPULT_REPO='https://chromium.googlesource.com/catapult'
 # QtWebEngine source repository.
 QTWEBENGINE_REPO='https://github.com/qt/qtwebengine'
-# QtWebKit source archive
-QTWEBKIT_URL="https://github.com/qtwebkit/qtwebkit/releases/download/qtwebkit-${QTWEBKIT_VERSION}-alpha4/qtwebkit-${QTWEBKIT_VERSION}-alpha4.tar.xz"
 
 GIT_ARCHIVE_BIN="git-archive-all"
 
@@ -38,15 +36,8 @@ clone_kde_qt() {
     cd ..
 }
 
-fetch_webkit() {
-    echo '[+] Fetching Qt Webkit ...'
-    wget "${QTWEBKIT_URL}"
-    tar xf "qtwebkit-${QTWEBKIT_VERSION}-alpha4.tar.xz"
-}
-
 [[ x"${QT_VERSION}" = "x" ]] && echo "QT_VERSION not set." && exit 1
 [[ x"${QTWEBENGINE_VERSION}" = "x" ]] && echo "QTWEBENGINE_VERSION not set." && exit 1
-[[ x"${QTWEBKIT_VERSION}" = "x" ]] && echo "QTWEBKIT_VERSION not set. Go to https://github.com/qtwebkit/qtwebkit/tags to figure it out." && exit 1
 [ -z "${KDE_QT_COMMIT}" ] && echo "KDE_QT_COMMIT not set. Go to https://invent.kde.org/qt/qt/qt5/-/tree/kde/5.15 to figure it out." && exit 1
 
 echo '[+] Performing pre-repack clean-up ...'
@@ -54,8 +45,7 @@ rm -rf \
      'catapult' \
      'kde-qt5' \
      'qtwebengine' \
-     "qtwebkit-${QTWEBKIT_VERSION}-alpha4.tar.xz" \
-     "qt-5-${QT_VERSION}+webengine${QTWEBENGINE_VERSION}+webkit${QTWEBKIT_VERSION}+kde"*.tar* \
+     "qt-5-${QT_VERSION}+webengine${QTWEBENGINE_VERSION}+kde"*.tar* \
      "qt-5.tmp.tar" \
      "qtwebengine.tmp.tar"
 
@@ -66,22 +56,15 @@ pip3 install --user --upgrade git-archive-all
 clone_kde_qt &
 KDE_QT_JOB="$!"
 
-fetch_webkit &
-WEBKIT_JOB="$!"
-
-wait $KDE_QT_JOB $WEBKIT_JOB
+wait $KDE_QT_JOB
 
 echo '[+] Cleaning up downloaded files ...'
-rm -rf 'catapult' 'kde-qt5' "qtwebkit-${QTWEBKIT_VERSION}-alpha4.tar.xz"
+rm -rf 'catapult' 'kde-qt5'
 
 echo '[+] Assembling Qt 5 repack (main sources) ...'
 tar xf qt-5.tmp.tar
 KDE_QT_COMMIT_DATE="$(cat COMMIT-DATE)" && rm -v COMMIT-DATE
 mv -v qt-5.tmp qt-5
-
-echo '[+] Assembling Qt 5 repack (QtWebKit) ...'
-rm -v "qtwebkit-${QTWEBKIT_VERSION}-alpha4"/WebKit.pro
-mv -v "qtwebkit-${QTWEBKIT_VERSION}-alpha4" ./qt-5/qtwebkit
 
 echo '[+] Running syncqt.pl for module headers ...'
 cd qt-5
@@ -93,8 +76,8 @@ done
 cd ..
 
 echo '[+] Compressing final tarball ...'
-tar cf "qt-5-${QT_VERSION}+webengine${QTWEBENGINE_VERSION}+webkit${QTWEBKIT_VERSION}+kde${KDE_QT_COMMIT_DATE}.tar" qt-5
-xz -9e -T0 "qt-5-${QT_VERSION}+webengine${QTWEBENGINE_VERSION}+webkit${QTWEBKIT_VERSION}+kde${KDE_QT_COMMIT_DATE}.tar"
+tar cf "qt-5-${QT_VERSION}+webengine${QTWEBENGINE_VERSION}+kde${KDE_QT_COMMIT_DATE}.tar" qt-5
+xz -9e -T0 "qt-5-${QT_VERSION}+webengine${QTWEBENGINE_VERSION}+kde${KDE_QT_COMMIT_DATE}.tar"
 
 echo '[+] Cleaning up ...'
 rm -rf qt-5 qt-5.tmp.tar
